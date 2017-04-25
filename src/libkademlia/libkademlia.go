@@ -22,6 +22,8 @@ const (
 type Kademlia struct {
 	NodeID      ID
 	SelfContact Contact
+	Table       RoutingTable
+	RoutingCh  chan RoutingEvent
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
