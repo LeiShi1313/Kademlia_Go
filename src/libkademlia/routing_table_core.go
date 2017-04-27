@@ -9,48 +9,51 @@ import (
 	"fmt"
 )
 
-// RoutingTable : one more for exactly the same, not used
-type RoutingTable [b + 1]Bucket
-
 const (
-	TABLE_EVENT_UPDATE            = 1
-	TABLE_EVENT_FIND_NEAREST_NODE = 2
+	ROUTING_TABLE_EVENT_UPDATE            = 1
+	ROUTING_TABLE_EVENT_FIND_NEAREST_NODE = 2
+	ROUTING_TABLE_EVENT_LOOK_UP           = 3
 )
 
-// TableEvent :
-type TableEvent struct {
+// RoutingTable : one more bucket for exactly the same, not used
+type RoutingTable struct {
+	Buckets   [b + 1]Bucket
+	EventChan chan RountingTableEvent
+	Self      *Kademlia
+}
+
+// RountingTableEvent :
+type RountingTableEvent struct {
 	EventID int
-	Arg     TableEventArg
+	Arg     RountingTableEventArg
 	Ret     chan error
 }
 
-// TableEventArg :
-type TableEventArg struct {
-	CIn   *Contact
-	CSIn  *[]Contact
-	IDIn  *ID
-	VIn   *[]byte
-	COut  *Contact
-	CSOut *[]Contact
-	IDOut *ID
-	VOut  *[]byte
+// RountingTableEventArg :
+type RountingTableEventArg struct {
+	ID *ID
+	C  *Contact
+	CS *[]Contact
 }
 
-// TableDispatcher :
-func (kad *Kademlia) TableDispatcher() {
-	var Event TableEvent
+// Dispatcher :
+func (tab *RoutingTable) Dispatcher() {
+	var Event RountingTableEvent
 	var Ret error
 	running := true
 	for running {
-		event, ok := <-kad.TableRoutingCh
+		event, ok := <-tab.EventChan
 		if ok {
 			Event = event
 			switch Event.EventID {
-			case TABLE_EVENT_UPDATE:
-				Ret = kad.TableUpdateCore(Event.Arg)
+			case ROUTING_TABLE_EVENT_UPDATE:
+				Ret = tab.UpdateCore(Event.Arg)
 				break
-			case TABLE_EVENT_FIND_NEAREST_NODE:
-				Ret = kad.FindNearestNodeCore(Event.Arg)
+			case ROUTING_TABLE_EVENT_FIND_NEAREST_NODE:
+				Ret = tab.FindNearestNodeCore(Event.Arg)
+				break
+			case ROUTING_TABLE_EVENT_LOOK_UP:
+				Ret = tab.LookUpCore(Event.Arg)
 				break
 			default:
 				fmt.Printf("Err: unknown command\n")
@@ -63,11 +66,11 @@ func (kad *Kademlia) TableDispatcher() {
 	}
 }
 
-// TableDelegate :
-func (kad *Kademlia) TableDelegate(EventID int, Arg TableEventArg) error {
+// Delegate :
+func (tab *RoutingTable) Delegate(EventID int, Arg RountingTableEventArg) error {
 	retchan := make(chan error)
-	E := TableEvent{EventID, Arg, retchan}
-	kad.TableRoutingCh <- E
+	E := RountingTableEvent{EventID, Arg, retchan}
+	tab.EventChan <- E
 	err, ok := <-E.Ret
 	if ok {
 		return err
@@ -75,34 +78,24 @@ func (kad *Kademlia) TableDelegate(EventID int, Arg TableEventArg) error {
 	return errors.New("Channel break")
 }
 
-// TableInit : Not thread safe, should be called only once
-func (kad *Kademlia) TableInit() error {
-	for i := 0; i < k; i++ {
-		kad.Table[i].Init()
-	}
-	kad.TableRoutingCh = make(chan TableEvent)
-	go kad.TableDispatcher()
-	return nil
-}
-
-// TableUpdateCore :
-func (kad *Kademlia) TableUpdateCore(Arg TableEventArg) error {
-	C := *(Arg.CIn)
-	dist := (kad.NodeID.Xor(C.NodeID)).PrefixLen()
+// UpdateCore :
+func (tab *RoutingTable) UpdateCore(Arg RountingTableEventArg) error {
+	C := *(Arg.C)
+	dist := (tab.Self.NodeID.Xor(C.NodeID)).PrefixLen()
 	if dist < b {
-		err := kad.Table[dist].MoveFront(C)
+		err := tab.Buckets[dist].MoveFront(C)
 		if err != nil { // Not in list
-			if kad.Table[dist].size < k { // Not full
-				kad.Table[dist].PushBack(C)
+			if tab.Buckets[dist].size < k { // Not full
+				tab.Buckets[dist].PushBack(C)
 				return nil
 			}
-			H, _ := kad.Table[dist].Top()
-			_, err = kad.DoPing(H.Host, H.Port)
+			H, _ := tab.Buckets[dist].Top()
+			_, err = tab.Self.DoPing(H.Host, H.Port)
 			if err != nil { // Can ping head
 				return errors.New("Bucket full")
 			}
-			kad.Table[dist].Pop()
-			kad.Table[dist].PushBack(C)
+			tab.Buckets[dist].Pop()
+			tab.Buckets[dist].PushBack(C)
 			return nil
 		}
 	} else {
@@ -112,14 +105,14 @@ func (kad *Kademlia) TableUpdateCore(Arg TableEventArg) error {
 }
 
 // FindNearestNodeCore :
-func (kad *Kademlia) FindNearestNodeCore(Arg TableEventArg) error {
+func (tab *RoutingTable) FindNearestNodeCore(Arg RountingTableEventArg) error {
 	var C []Contact
-	id := *Arg.IDIn
-	dist := (kad.NodeID.Xor(id)).PrefixLen()
+	id := *Arg.ID
+	dist := (tab.Self.NodeID.Xor(id)).PrefixLen()
 	for j := dist; j < b; j++ {
 		if len(C) < k {
-			for i := 0; i < kad.Table[j].size && len(C) < k; i++ {
-				T, _ := kad.Table[j].Get(i)
+			for i := 0; i < tab.Buckets[j].size && len(C) < k; i++ {
+				T, _ := tab.Buckets[j].Get(i)
 				C = append(C, T)
 			}
 		} else {
@@ -128,14 +121,23 @@ func (kad *Kademlia) FindNearestNodeCore(Arg TableEventArg) error {
 	}
 	for j := dist - 1; j > -1; j++ {
 		if len(C) < k {
-			for i := 0; i < kad.Table[j].size && len(C) < k; i++ {
-				T, _ := kad.Table[j].Get(i)
+			for i := 0; i < tab.Buckets[j].size && len(C) < k; i++ {
+				T, _ := tab.Buckets[j].Get(i)
 				C = append(C, T)
 			}
 		} else {
 			break
 		}
 	}
-	Arg.CSOut = &C
+	Arg.CS = &C
 	return nil
+}
+
+// LookUpCore : ID to Contact
+func (tab *RoutingTable) LookUpCore(Arg RountingTableEventArg) error {
+	id := *(Arg.ID)
+	dist := (tab.Self.NodeID.Xor(id)).PrefixLen()
+	C, err := tab.Buckets[dist].Find(id)
+	*(Arg.C) = C
+	return err
 }

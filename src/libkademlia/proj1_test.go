@@ -186,3 +186,64 @@ func TestFindValue(t *testing.T) {
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
 }
+
+func TestHashTable(t *testing.T) {
+	var H HashTable
+	ida := NewRandomID()
+	idb := NewRandomID()
+	self := NewKademlia("localhost:7926")
+	va := []byte("Value A")
+	vb := []byte("Value B")
+	H.Init(self)
+	H.Add(ida, va)
+	V, err := H.Find(idb)
+	if err == nil {
+		t.Error("Id b shouldn't be in table")
+	}
+	V, err = H.Find(ida)
+	if err != nil {
+		t.Error("Id a should be in table")
+	}
+	if len(V) != len(va) {
+		t.Error("Value a mismatch")
+	}
+	for i := 0; i < len(V); i++ {
+		if V[i] != va[i] {
+			t.Error("Value a mismatch")
+		}
+	}
+	H.Add(idb, vb)
+	V, err = H.Find(idb)
+	if err != nil {
+		t.Error("Id b should t be in table")
+	}
+	V, err = H.Find(ida)
+	if err != nil {
+		t.Error("Id a should be in table")
+	}
+	if len(V) != len(vb) {
+		t.Error("Value a mismatch")
+	}
+	for i := 0; i < len(V); i++ {
+		if V[i] != vb[i] {
+			t.Error("Value b mismatch")
+		}
+	}
+	V, err = H.Find(ida)
+	if err != nil {
+		t.Error("Id a should be in table")
+	}
+	if len(V) != len(va) {
+		t.Error("Value a mismatch")
+	}
+	for i := 0; i < len(V); i++ {
+		if V[i] != va[i] {
+			t.Error("Value a mismatch")
+		}
+	}
+	H.Remove(ida)
+	V, err = H.Find(idb)
+	if err == nil {
+		t.Error("Id a shouldn't be in table")
+	}
+}
