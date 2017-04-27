@@ -20,10 +20,10 @@ const (
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
-	NodeID      ID
-	SelfContact Contact
-	Table       RoutingTable
-	RoutingCh  chan RoutingEvent
+	NodeID         ID
+	SelfContact    Contact
+	Table          RoutingTable
+	TableRoutingCh chan TableEvent
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {

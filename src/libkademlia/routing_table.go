@@ -1,61 +1,27 @@
+/*
+These functions are thread safe
+*/
+
 package libkademlia
 
-import (
-	"fmt"
-)
-
-const (
-	ROUTING_EVENT_UPDATE = 1
-)
-
-type RoutingTable [b]Bucket
-
-type RoutingEvent struct {
-	EventId int
-	In      chan Contact
-	Out     chan Contact
-}
-
-func (k *Kademlia) TableDispatcher() {
-	var event RoutingEvent
-	running := true
-	for running {
-		e, ok := <-k.RoutingCh
-		event = e
-		var args []Contact
-		hasargs := true
-		for (hasargs) {
-			arg, more := <- event.In
-			if more {
-				append(args, arg)
-			}
-			else{
-				hasargs = false
-			}
-		}
-		switch Event.EventId {
-		case ROUTING_EVENT_UPDATE:
-			
-
-			break
-		default:
-			fmt.Printf("Err: unknown command\n")
-		}
+// TableUpdateN :
+func (kad *Kademlia) TableUpdateN(C []Contact) (err []error) {
+	for i := 0; i < len(C); i++ {
+		err = append(err, kad.TableUpdate(C[i]))
 	}
+	return
 }
 
-func (k *Kademlia) TableUpdate(args []Contact){
-
+// TableUpdate :
+func (kad *Kademlia) TableUpdate(C Contact) error {
+	E := TableEventArg{&C, nil, nil, nil, nil, nil, nil, nil}
+	return kad.TableDelegate(TABLE_EVENT_UPDATE, E)
 }
 
-
-
-func (k *Kademlia) Table_Init() error {
-	for i := 0; i < k; i++ {
-		k.Table[i].head = 0;
-		k.Table[i].tail = 0;
-	}
-
-	go k.TableDispatcher()
-	return nil
+// FindNearestNode : FIND_NODE
+func (kad *Kademlia) FindNearestNode(id ID) (C []Contact, num int, err error) {
+	E := TableEventArg{nil, nil, &id, nil, nil, &C, nil, nil}
+	ret := kad.TableDelegate(TABLE_EVENT_UPDATE, E)
+	C = *E.CSOut
+	return C, len(C), ret
 }
