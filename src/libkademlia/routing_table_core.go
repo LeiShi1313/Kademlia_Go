@@ -92,7 +92,7 @@ func (kad *Kademlia) TableUpdateCore(Arg TableEventArg) error {
 	if dist < b {
 		err := kad.Table[dist].MoveFront(C)
 		if err != nil { // Not in list
-			if kad.Table[dist].Size() < k { // Not full
+			if kad.Table[dist].size < k { // Not full
 				kad.Table[dist].PushBack(C)
 				return nil
 			}
