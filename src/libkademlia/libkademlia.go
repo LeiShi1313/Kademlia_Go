@@ -99,8 +99,27 @@ func (e *CommandFailed) Error() string {
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
-	return nil, &CommandFailed{
-		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
+		//fmt.Println(host.String()+":"+strconv.Itoa(int(port)))
+
+	client, err := rpc.DialHTTPPath("tcp", host.String()+":"+strconv.Itoa(int(port)),rpc.DefaultRPCPath+strconv.Itoa(int(port)))
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	var reply PongMessage
+	/*fmt.Println("========================")
+	for i:= 0;i<IDBytes;i++{
+		fmt.Println(int(k.SelfContact.NodeID[i]))
+	}
+	fmt.Println("========================")*/
+	err = client.Call("KademliaRPC.Ping", PingMessage{k.SelfContact, NewRandomID()}, &reply)
+	//fmt.Println(reply.MsgID)
+	if err == nil {
+		k.KB.CommandChannel <- &KBucketRequest{"main", UPDATE, nil, &reply.Sender, nil}
+		return &reply.Sender, nil
+	} else {
+		return nil, &CommandFailed{
+		   "Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
+	}	
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
