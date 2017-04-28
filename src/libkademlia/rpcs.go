@@ -112,6 +112,9 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	res.MsgID = CopyID(req.MsgID)
 	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.Key)
 	res.Value, res.Err = k.kademlia.HT.Find(req.Key)
+	if res.Err != nil {
+		res.Value = nil
+	}
 	//update contact
 	k.kademlia.RT.Update(req.Sender)
 	return nil
