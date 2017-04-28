@@ -138,9 +138,13 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 		return nil, err
 	}
 	var reply FindNodeResult
-	err = client.Call("Kademlia.FindNode", FindNodeRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
+	msgId := NewRandomID()
+	err = client.Call("KademliaRPC.FindNode", FindNodeRequest{k.SelfContact, msgId, searchKey}, &reply)
 	if err != nil {
 		return nil, err
+	}
+	if reply.MsgID != msgId {
+		return nil, &CommandFailed{"MsgId inconsitent"}
 	}
 
 	return reply.Nodes, nil
@@ -154,7 +158,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		return nil, nil, err
 	}
 	var reply FindValueResult
-	err = client.Call("Kademlia.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
+	err = client.Call("KademliaRPC.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
 	if err != nil {
 		return nil, nil, err
 	}
