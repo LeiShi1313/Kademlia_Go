@@ -31,7 +31,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
 
 	// TODO: Initialize other state here as you add functionality.
-
+	k.RT.Init(k)
+	k.HT.Init(k)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -42,8 +43,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	if err != nil {
 		return nil
 	}
-	s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
-		rpc.DefaultDebugPath+hostname+port)
+	s.HandleHTTP(rpc.DefaultRPCPath+port,
+		rpc.DefaultDebugPath+port)
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
 		log.Fatal("Listen: ", err)
@@ -99,8 +100,21 @@ func (e *CommandFailed) Error() string {
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
-	return nil, &CommandFailed{
-                 "Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
+	peerStr := host.String() + ":" + strconv.Itoa(int(port))
+	portStr := fmt.Sprint(port)
+	client, err := rpc.DialHTTPPath("tcp", peerStr, rpc.DefaultRPCPath+portStr)
+	if err != nil {
+		return nil, err
+	}
+	var reply PongMessage
+	/*fmt.Println("========================")
+	for i:= 0;i<IDBytes;i++{
+		fmt.Println(int(k.SelfContact.NodeID[i]))
+	}
+	fmt.Println("========================")*/
+	err = client.Call("KademliaRPC.Ping", PingMessage{k.SelfContact, NewRandomID()}, &reply)
+	defer k.RT.Update(reply.Sender)
+	return &reply.Sender, err
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {

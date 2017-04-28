@@ -80,12 +80,12 @@ type FindNodeResult struct {
 }
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
-	resultCount int
+	//var resultCount int
 	// Fill up result
-	FindNodeResult.MsgID = CopyID(FindNodeRequest.MsgID)
-	FindNodeResult.Nodes, resultCount, FindNodeResult.Err = k.kademlia.RT.FindNearestNode(FindNodeRequest.NodeID)
+	res.MsgID = CopyID(req.MsgID)
+	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.NodeID)
 	// Update contact
-	k.kademlia.RT.Update(FindNodeRequest.Sender)
+	k.kademlia.RT.Update(req.Sender)
 	return nil
 }
 
@@ -108,17 +108,17 @@ type FindValueResult struct {
 }
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
-	err error
+	var err error
 	// Fill up result
-	FindValueResult.MsgID = CopyID(FindNodeRequest.MsgID)
-	FindValueResult.Value, err = k.kademlia.HT.Find(FindValueRequest.Key)
+	res.MsgID = CopyID(req.MsgID)
+	res.Value, err = k.kademlia.HT.Find(req.Key)
 	if err != nil {
-		FindValueResult.Err = err
+		res.Err = err
 		return nil
 	}
-	FindValueResult.Nodes, _, FindValueResult.Err = k.kademlia.RT.FindNearestNode(FindValueRequest.Key)
+	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.Key)
 	//update contact
-	k.kademlia.RT.Update(FindValueRequest.Sender)
+	k.kademlia.RT.Update(req.Sender)
 	return nil
 }
 
