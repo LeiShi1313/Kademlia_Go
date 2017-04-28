@@ -87,7 +87,8 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
 	}
-	return nil, &ContactNotFoundError{nodeId, "Not found"}
+	contact, err := k.RT.LookUp(nodeId)
+	return &contact, err
 }
 
 type CommandFailed struct {
