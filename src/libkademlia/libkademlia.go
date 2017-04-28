@@ -4,6 +4,8 @@ package libkademlia
 // as a receiver for the RPC methods, which is required by that package.
 
 import (
+	"encoding/gob"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -64,6 +66,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 			break
 		}
 	}
+	gob.Register(errors.New(""))
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
 	return k
 }
@@ -159,10 +162,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	}
 	var reply FindValueResult
 	err = client.Call("KademliaRPC.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
-	if err != nil {
-		return nil, reply.Nodes, err
-	}
-	return reply.Value, reply.Nodes, nil
+	return reply.Value, reply.Nodes, reply.Err
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
