@@ -250,9 +250,9 @@ func TestHashTable(t *testing.T) {
 }
 
 func TestRountingTable(t *testing.T) {
-	var R RoutingTable
+	/*var R RoutingTable
 	self := NewKademlia("localhost:7926")
 	R.Init(self)
 	peer := Contact{NewRandomID(), nil, 0}
-
+	*/
 }
