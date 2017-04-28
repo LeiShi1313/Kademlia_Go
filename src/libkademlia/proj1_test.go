@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 	//"time"
+	"fmt"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -188,6 +189,8 @@ func TestFindValue(t *testing.T) {
 }
 
 func TestHashTable(t *testing.T) {
+	fmt.Println("Testing hash table")
+
 	var H HashTable
 	ida := NewRandomID()
 	idb := NewRandomID()
