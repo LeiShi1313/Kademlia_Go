@@ -119,7 +119,7 @@ func (tab *RoutingTable) FindNearestNodeCore(Arg RountingTableEventArg) error {
 			break
 		}
 	}
-	for j := dist - 1; j > -1; j++ {
+	for j := dist - 1; j > -1; j-- {
 		if len(C) < k {
 			for i := 0; i < tab.Buckets[j].size && len(C) < k; i++ {
 				T, _ := tab.Buckets[j].Get(i)

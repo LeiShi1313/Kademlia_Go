@@ -11,7 +11,7 @@
             "host": "127.0.0.1",
             "program": "C:\\Users\\khou2\\Desktop\\kademlia\\src\\libkademlia\\proj1_test.go",
             "env": {},
-            "args": ["-test.run", "TestPing"],
+            "args": ["-test.run", "TestFindNode"],
             "showLog": true
         }
     ]
