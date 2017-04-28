@@ -108,15 +108,10 @@ type FindValueResult struct {
 }
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
-	var err error
 	// Fill up result
 	res.MsgID = CopyID(req.MsgID)
-	res.Value, err = k.kademlia.HT.Find(req.Key)
-	if err != nil {
-		res.Err = err
-		return nil
-	}
 	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.Key)
+	res.Value, res.Err = k.kademlia.HT.Find(req.Key)
 	//update contact
 	k.kademlia.RT.Update(req.Sender)
 	return nil

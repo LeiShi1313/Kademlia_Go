@@ -160,7 +160,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	var reply FindValueResult
 	err = client.Call("KademliaRPC.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
 	if err != nil {
-		return nil, nil, err
+		return nil, reply.Nodes, err
 	}
 	return reply.Value, reply.Nodes, nil
 }
