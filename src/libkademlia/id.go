@@ -59,6 +59,18 @@ func (id ID) PrefixLen() int {
 			}
 		}
 	}
+	return IDBytes*8 - 1
+}
+
+// Return the number of consecutive zeroes in an ID
+func (id ID) PrefixLenEx() int {
+	for i := 0; i < IDBytes; i++ {
+		for j := 7; j >= 0; j-- {
+			if (id[i]>>uint8(j))&0x1 != 0 {
+				return (8 * i) + (7 - j)
+			}
+		}
+	}
 	return IDBytes * 8
 }
 

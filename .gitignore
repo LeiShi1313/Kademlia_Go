@@ -30,3 +30,4 @@ pkg
 *.swp
 
 *.json
+.vscode/launch.json

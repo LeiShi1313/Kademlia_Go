@@ -81,7 +81,7 @@ func (tab *RoutingTable) Delegate(EventID int, Arg RountingTableEventArg) error 
 // UpdateCore :
 func (tab *RoutingTable) UpdateCore(Arg RountingTableEventArg) error {
 	C := *(Arg.C)
-	dist := (tab.Self.NodeID.Xor(C.NodeID)).PrefixLen()
+	dist := (tab.Self.NodeID.Xor(C.NodeID)).PrefixLenEx()
 	if dist < b {
 		err := tab.Buckets[dist].MoveFront(C)
 		if err != nil { // Not in list
@@ -108,7 +108,7 @@ func (tab *RoutingTable) UpdateCore(Arg RountingTableEventArg) error {
 func (tab *RoutingTable) FindNearestNodeCore(Arg RountingTableEventArg) error {
 	var C []Contact
 	id := *Arg.ID
-	dist := (tab.Self.NodeID.Xor(id)).PrefixLen()
+	dist := (tab.Self.NodeID.Xor(id)).PrefixLenEx()
 	for j := dist; j < b; j++ {
 		if len(C) < k {
 			for i := 0; i < tab.Buckets[j].size && len(C) < k; i++ {
@@ -136,7 +136,7 @@ func (tab *RoutingTable) FindNearestNodeCore(Arg RountingTableEventArg) error {
 // LookUpCore : ID to Contact
 func (tab *RoutingTable) LookUpCore(Arg RountingTableEventArg) error {
 	id := *(Arg.ID)
-	dist := (tab.Self.NodeID.Xor(id)).PrefixLen()
+	dist := (tab.Self.NodeID.Xor(id)).PrefixLenEx()
 	C, err := tab.Buckets[dist].Find(id)
 	*(Arg.C) = C
 	return err
