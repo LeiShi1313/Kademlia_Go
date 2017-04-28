@@ -52,3 +52,12 @@ func (tab *RoutingTable) LookUp(id ID) (C Contact, err error) {
 	C = T
 	return C, ret
 }
+
+// Size :
+func (tab *RoutingTable) Size() int {
+	ret := 0
+	for i := 0; i < k; i++ {
+		ret += tab.Buckets[i].size
+	}
+	return ret
+}

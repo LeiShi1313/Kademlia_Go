@@ -57,15 +57,15 @@ func (bkt *Bucket) Get(idx int) (C Contact, err error) {
 func (bkt *Bucket) MoveFront(C Contact) error {
 	var i, j int
 	for i = 0; i < bkt.size; i++ {
-		if bkt.Entries[(i+bkt.size)%k].NodeID.Equals(C.NodeID) {
+		if bkt.Entries[(i+bkt.head)%k].NodeID.Equals(C.NodeID) {
 			break
 		}
 	}
 	if i < bkt.size {
 		for j = i + 1; j < bkt.size; j++ {
-			T := bkt.Entries[(j-1+bkt.size)%k]
-			bkt.Entries[(j-1+bkt.size)%k] = bkt.Entries[(j+bkt.size)%k]
-			bkt.Entries[(j+bkt.size)%k] = T
+			T := bkt.Entries[(j-1+bkt.head)%k]
+			bkt.Entries[(j-1+bkt.head)%k] = bkt.Entries[(j+bkt.head)%k]
+			bkt.Entries[(j+bkt.head)%k] = T
 		}
 		return nil
 	}

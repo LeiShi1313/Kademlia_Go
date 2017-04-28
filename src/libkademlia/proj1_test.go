@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 	//"time"
+	"fmt"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -148,6 +149,7 @@ func TestFindValue(t *testing.T) {
 	instance1 := NewKademlia("localhost:7926")
 	instance2 := NewKademlia("localhost:7927")
 	host2, port2, _ := StringToIpPort("localhost:7927")
+	fmt.Printf("%d %d\n", instance1.RT.Size(), instance2.RT.Size())
 	instance1.DoPing(host2, port2)
 	contact2, err := instance1.FindContact(instance2.NodeID)
 	if err != nil {
@@ -247,12 +249,4 @@ func TestHashTable(t *testing.T) {
 	if err == nil {
 		t.Error("Id a shouldn't be in table")
 	}
-}
-
-func TestRountingTable(t *testing.T) {
-	/*var R RoutingTable
-	self := NewKademlia("localhost:7926")
-	R.Init(self)
-	peer := Contact{NewRandomID(), nil, 0}
-	*/
 }
