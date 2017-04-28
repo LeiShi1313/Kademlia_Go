@@ -25,3 +25,6 @@ _testmain.go
 
 bin
 pkg
+
+# vim swp file
+*.swp

@@ -37,9 +37,10 @@ func (tab *RoutingTable) Update(C Contact) error {
 
 // FindNearestNode : FIND_NODE
 func (tab *RoutingTable) FindNearestNode(id ID) (C []Contact, num int, err error) {
-	E := RountingTableEventArg{&id, nil, &C}
+	var T *[]Contact
+	E := RountingTableEventArg{&id, nil, &T}
 	ret := tab.Delegate(ROUTING_TABLE_EVENT_FIND_NEAREST_NODE, E)
-	C = *E.CS
+	C = **(E.CS)
 	return C, len(C), ret
 }
 

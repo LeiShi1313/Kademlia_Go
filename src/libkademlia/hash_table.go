@@ -21,15 +21,20 @@ func (tab *HashTable) Finalize() error {
 
 // Find :
 func (tab *HashTable) Find(key ID) (V []byte, err error) {
-	E := HashTableEventArg{&key, nil}
+	var varp *[]byte
+	E := HashTableEventArg{&key, &varp}
 	err = tab.Delegate(HASH_TABLE_EVENT_FIND, E)
-	V = *E.Value
+	if err == nil {
+		V = **(E.Value)
+	}
 	return V, err
 }
 
 // Add : Adding existing key overwrites the value
 func (tab *HashTable) Add(key ID, value []byte) error {
-	E := HashTableEventArg{&key, &value}
+	var varp *[]byte
+	varp = &value
+	E := HashTableEventArg{&key, &varp}
 	return tab.Delegate(HASH_TABLE_EVENT_ADD, E)
 }
 

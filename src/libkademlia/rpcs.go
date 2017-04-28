@@ -33,10 +33,11 @@ type PongMessage struct {
 }
 
 func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
-	// TODO: Finish implementation
 	pong.MsgID = CopyID(ping.MsgID)
-	// Specify the sender
+	// Specify the sende
+	pong.Sender = k.kademlia.SelfContact
 	// Update contact, etc
+	k.kademlia.RT.Update(ping.Sender)
 	return nil
 }
 
@@ -56,7 +57,10 @@ type StoreResult struct {
 }
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
-	// TODO: Implement.
+	res.MsgID = CopyID(req.MsgID)
+	res.Err = k.kademlia.HT.Add(req.Key, req.Value)
+	// Update contact
+	k.kademlia.RT.Update(req.Sender)
 	return nil
 }
 
@@ -76,7 +80,12 @@ type FindNodeResult struct {
 }
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
-	// TODO: Implement.
+	//var resultCount int
+	// Fill up result
+	res.MsgID = CopyID(req.MsgID)
+	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.NodeID)
+	// Update contact
+	k.kademlia.RT.Update(req.Sender)
 	return nil
 }
 
@@ -99,7 +108,17 @@ type FindValueResult struct {
 }
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
-	// TODO: Implement.
+	var err error
+	// Fill up result
+	res.MsgID = CopyID(req.MsgID)
+	res.Value, err = k.kademlia.HT.Find(req.Key)
+	if err != nil {
+		res.Err = err
+		return nil
+	}
+	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.Key)
+	//update contact
+	k.kademlia.RT.Update(req.Sender)
 	return nil
 }
 

@@ -33,7 +33,7 @@ type RountingTableEvent struct {
 type RountingTableEventArg struct {
 	ID *ID
 	C  *Contact
-	CS *[]Contact
+	CS **[]Contact
 }
 
 // Dispatcher :
@@ -129,7 +129,7 @@ func (tab *RoutingTable) FindNearestNodeCore(Arg RountingTableEventArg) error {
 			break
 		}
 	}
-	Arg.CS = &C
+	*Arg.CS = &C
 	return nil
 }
 
