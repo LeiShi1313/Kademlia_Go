@@ -76,8 +76,8 @@ func (bkt *Bucket) MoveFront(C Contact) error {
 func (bkt *Bucket) Find(id ID) (C Contact, err error) {
 	var i int
 	for i = 0; i < bkt.size; i++ {
-		if bkt.Entries[(i+bkt.size)%k].NodeID.Equals(C.NodeID) {
-			C = bkt.Entries[(i+bkt.size)%k]
+		if bkt.Entries[(i+bkt.head)%k].NodeID.Equals(id) {
+			C = bkt.Entries[(i+bkt.head)%k]
 			err = nil
 			return C, err
 		}

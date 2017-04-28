@@ -46,8 +46,9 @@ func (tab *RoutingTable) FindNearestNode(id ID) (C []Contact, num int, err error
 
 // LookUp : ID to Contact
 func (tab *RoutingTable) LookUp(id ID) (C Contact, err error) {
-	E := RountingTableEventArg{&id, &C, nil}
+	var T Contact
+	E := RountingTableEventArg{&id, &T, nil}
 	ret := tab.Delegate(ROUTING_TABLE_EVENT_LOOK_UP, E)
-	C = *E.C
+	C = T
 	return C, ret
 }
