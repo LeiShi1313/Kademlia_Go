@@ -98,20 +98,19 @@ func (e *CommandFailed) Error() string {
 	return fmt.Sprintf("%s", e.msg)
 }
 
-func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
-	// TODO: Implement
+func (k *Kademlia) dial(host net.IP, port uint16) (*rpc.Client, error) {
 	peerStr := host.String() + ":" + strconv.Itoa(int(port))
 	portStr := fmt.Sprint(port)
-	client, err := rpc.DialHTTPPath("tcp", peerStr, rpc.DefaultRPCPath+portStr)
+	return rpc.DialHTTPPath("tcp", peerStr, rpc.DefaultRPCPath+portStr)
+}
+
+func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
+	client, err := k.dial(host, port)
+
 	if err != nil {
 		return nil, err
 	}
 	var reply PongMessage
-	/*fmt.Println("========================")
-	for i:= 0;i<IDBytes;i++{
-		fmt.Println(int(k.SelfContact.NodeID[i]))
-	}
-	fmt.Println("========================")*/
 	err = client.Call("KademliaRPC.Ping", PingMessage{k.SelfContact, NewRandomID()}, &reply)
 	defer k.RT.Update(reply.Sender)
 	return &reply.Sender, err
@@ -119,23 +118,52 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 	// TODO: Implement
-	return &CommandFailed{"Not implemented"}
+	client, err := k.dial(contact.Host, contact.Port)
+	if err != nil {
+		return err
+	}
+	var reply StoreResult
+	err = client.Call("KademliaRPC.Store", StoreRequest{k.SelfContact, NewRandomID(), key, value}, &reply)
+	if err != nil {
+		return err
+	}
+	return reply.Err
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
 	// TODO: Implement
-	return nil, &CommandFailed{"Not implemented"}
+	client, err := k.dial(contact.Host, contact.Port)
+	if err != nil {
+		return nil, err
+	}
+	var reply FindNodeResult
+	err = client.Call("Kademlia.FindNode", FindNodeRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply.Nodes, nil
 }
 
 func (k *Kademlia) DoFindValue(contact *Contact,
 	searchKey ID) (value []byte, contacts []Contact, err error) {
 	// TODO: Implement
-	return nil, nil, &CommandFailed{"Not implemented"}
+	client, err := k.dial(contact.Host, contact.Port)
+	if err != nil {
+		return nil, nil, err
+	}
+	var reply FindValueResult
+	err = client.Call("Kademlia.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
+	if err != nil {
+		return nil, nil, err
+	}
+	return reply.Value, reply.Nodes, nil
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
-	return []byte(""), &CommandFailed{"Not implemented"}
+
+	return k.HT.Find(searchKey)
 }
 
 // For project 2!
