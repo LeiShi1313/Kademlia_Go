@@ -38,7 +38,7 @@ type HashTableEvent struct {
 // HashTableEventArg :
 type HashTableEventArg struct {
 	Key   *ID
-	Value *[]byte
+	Value **[]byte
 }
 
 // Dispatcher :
@@ -88,7 +88,11 @@ func (tab *HashTable) FindCore(Arg HashTableEventArg) error {
 	_, ok := tab.Table[*(Arg.Key)]
 	if ok {
 		E := tab.Table[*(Arg.Key)]
-		*(Arg.Value) = E.Value
+		T := make([]byte, len(E.Value))
+		*(Arg.Value) = &T
+		for i := 0; i < len(E.Value); i++ {
+			T[i] = E.Value[i]
+		}
 		return nil
 	}
 	return errors.New("Key not found")
@@ -96,7 +100,7 @@ func (tab *HashTable) FindCore(Arg HashTableEventArg) error {
 
 // AddCore :
 func (tab *HashTable) AddCore(Arg HashTableEventArg) error {
-	tab.Table[*(Arg.Key)] = HashTableEntry{*(Arg.Key), *(Arg.Value)}
+	tab.Table[*(Arg.Key)] = HashTableEntry{*(Arg.Key), **(Arg.Value)}
 	return nil
 }
 

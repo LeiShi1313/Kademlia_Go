@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 	//"time"
-	"fmt"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -189,12 +188,11 @@ func TestFindValue(t *testing.T) {
 }
 
 func TestHashTable(t *testing.T) {
-	fmt.Println("Testing hash table")
-
 	var H HashTable
 	ida := NewRandomID()
 	idb := NewRandomID()
-	self := NewKademlia("localhost:7926")
+	var self *Kademlia
+
 	va := []byte("Value A")
 	vb := []byte("Value B")
 	H.Init(self)
@@ -216,13 +214,13 @@ func TestHashTable(t *testing.T) {
 		}
 	}
 	H.Add(idb, vb)
-	V, err = H.Find(idb)
-	if err != nil {
-		t.Error("Id b should t be in table")
-	}
 	V, err = H.Find(ida)
 	if err != nil {
 		t.Error("Id a should be in table")
+	}
+	V, err = H.Find(idb)
+	if err != nil {
+		t.Error("Id b should be in table")
 	}
 	if len(V) != len(vb) {
 		t.Error("Value a mismatch")
@@ -245,7 +243,7 @@ func TestHashTable(t *testing.T) {
 		}
 	}
 	H.Remove(ida)
-	V, err = H.Find(idb)
+	V, err = H.Find(ida)
 	if err == nil {
 		t.Error("Id a shouldn't be in table")
 	}
