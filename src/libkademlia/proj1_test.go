@@ -248,3 +248,7 @@ func TestHashTable(t *testing.T) {
 		t.Error("Id a shouldn't be in table")
 	}
 }
+
+func TestRountingTable(t *testing.T) {
+
+}
