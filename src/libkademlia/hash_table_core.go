@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	HASH_TABLE_EVENT_ADD    = 1
-	HASH_TABLE_EVENT_FIND   = 2
-	HASH_TABLE_EVENT_REMOVE = 3
+	HASH_TABLE_EVENT_ADD                    = 1
+	HASH_TABLE_EVENT_FIND                   = 2
+	HASH_TABLE_EVENT_REMOVE                 = 3
+	HASH_TABLE_EVENT_FIND_VALUE_AND_CONTACT = 4
 )
 
 // HashTable :
@@ -39,6 +40,7 @@ type HashTableEvent struct {
 type HashTableEventArg struct {
 	Key   *ID
 	Value **[]byte
+	CS    **[]Contact
 }
 
 // Dispatcher :
@@ -59,6 +61,9 @@ func (tab *HashTable) Dispatcher() {
 				break
 			case HASH_TABLE_EVENT_REMOVE:
 				Ret = tab.RemoveCore(Event.Arg)
+				break
+			case HASH_TABLE_EVENT_FIND_VALUE_AND_CONTACT:
+				Ret = tab.FindValueAndContactCore(Event.Arg)
 				break
 			default:
 				fmt.Printf("Err: unknown command\n")
@@ -96,6 +101,14 @@ func (tab *HashTable) FindCore(Arg HashTableEventArg) error {
 		return nil
 	}
 	return errors.New("Key not found")
+}
+
+// FindValueAndContactCore :
+func (tab *HashTable) FindValueAndContactCore(Arg HashTableEventArg) error {
+	C, _, _ := tab.Self.RT.FindNearestNode(*(Arg.Key))
+	err := tab.FindCore(Arg)
+	*Arg.CS = &C
+	return err
 }
 
 // AddCore :

@@ -102,6 +102,12 @@ func (e *CommandFailed) Error() string {
 	return fmt.Sprintf("%s", e.msg)
 }
 
+func (k *Kademlia) Finalize(host net.IP, port uint16) (*rpc.Client, error) {
+	peerStr := host.String() + ":" + strconv.Itoa(int(port))
+	portStr := fmt.Sprint(port)
+	return rpc.DialHTTPPath("tcp", peerStr, rpc.DefaultRPCPath+portStr)
+}
+
 func (k *Kademlia) dial(host net.IP, port uint16) (*rpc.Client, error) {
 	peerStr := host.String() + ":" + strconv.Itoa(int(port))
 	portStr := fmt.Sprint(port)
