@@ -47,7 +47,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	}
 	s.HandleHTTP(rpc.DefaultRPCPath+port,
 		rpc.DefaultDebugPath+port)
-	l, err := net.Listen("tcp", laddr)
+	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal("Listen: ", err)
 	}
