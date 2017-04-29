@@ -49,20 +49,7 @@ func main() {
 	// Confirm our server is up with a PING request and then exit.
 	// Your code should loop forever, reading instructions from stdin and
 	// printing their results to stdout. See README.txt for more details.
-	var ip net.IP
-	ipstr, portstr, _ := net.SplitHostPort(firstPeerStr)
-	hoststrs, err := net.LookupHost(ipstr)
-	if err != nil {
-		log.Printf("ERR: Could not find the provided hostname")
-		return
-	}
-	for i := 0; i < len(hoststrs); i++ {
-		ip = net.ParseIP(hoststrs[i])
-		if ip.To4() != nil {
-			break
-		}
-	}
-	port, _ := strconv.Atoi(portstr)
+	ip, port, _ := StringToIpPort(firstPeerStr)
 
 	log.Printf("Pinging initial peer\n")
 
@@ -88,6 +75,7 @@ func main() {
 		resp := executeLine(kadem, line)
 		if resp == "quit" {
 			quit = true
+			kadem.Finalize()
 		} else if resp != "" {
 			fmt.Printf("%v\n", resp)
 		}
@@ -356,5 +344,25 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 	default:
 		response = "ERR: Unknown command"
 	}
+	return
+}
+
+func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
+	hostString, portString, err := net.SplitHostPort(laddr)
+	if err != nil {
+		return
+	}
+	ipStr, err := net.LookupHost(hostString)
+	if err != nil {
+		return
+	}
+	for i := 0; i < len(ipStr); i++ {
+		ip = net.ParseIP(ipStr[i])
+		if ip.To4() != nil {
+			break
+		}
+	}
+	portInt, err := strconv.Atoi(portString)
+	port = uint16(portInt)
 	return
 }

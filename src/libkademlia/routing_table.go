@@ -16,8 +16,9 @@ func (tab *RoutingTable) Init(Self *Kademlia) error {
 }
 
 // Finalize : Not thread safe, should be called only once. Must be called before program exit. All functions can't be called after Finalize
-func (tab *RoutingTable) Finalize(Self *Kademlia) error {
-	close(tab.EventChan)
+func (tab *RoutingTable) Finalize() error {
+	E := RountingTableEventArg{nil, nil, nil}
+	tab.Delegate(ROUTING_TABLE_EVENT_FINALIZE, E)
 	return nil
 }
 

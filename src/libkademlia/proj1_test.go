@@ -130,6 +130,21 @@ func TestFindNode(t *testing.T) {
 	if contacts == nil || len(contacts) == 0 {
 		t.Error("No contacts were found")
 	}
+
+	var j int
+	for i := 0; i < len(contacts); i++ {
+		for j = 0; j < len(tree_node); j++ {
+			if contacts[i].NodeID.Equals(tree_node[j].SelfContact.NodeID) {
+				break
+			}
+		}
+		if j == len(tree_node) {
+			if !(contacts[i].NodeID.Equals(instance1.SelfContact.NodeID)) {
+				t.Error("Wrong contacts")
+			}
+		}
+	}
+
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
 
@@ -149,7 +164,6 @@ func TestFindValue(t *testing.T) {
 	instance1 := NewKademlia("localhost:7926")
 	instance2 := NewKademlia("localhost:7927")
 	host2, port2, _ := StringToIpPort("localhost:7927")
-	fmt.Printf("%d %d\n", instance1.RT.Size(), instance2.RT.Size())
 	instance1.DoPing(host2, port2)
 	contact2, err := instance1.FindContact(instance2.NodeID)
 	if err != nil {
@@ -181,8 +195,22 @@ func TestFindValue(t *testing.T) {
 	//Given the wrong keyID, it should return k nodes.
 	wrongKey := NewRandomID()
 	foundValue, contacts, err = instance1.DoFindValue(contact2, wrongKey)
-	if contacts == nil || len(contacts) < 10 {
+	if contacts == nil || len(contacts) < 10 || len(contacts) > 11 {
 		t.Error("Searching for a wrong ID did not return contacts")
+	}
+
+	var j int
+	for i := 0; i < len(contacts); i++ {
+		for j = 0; j < len(tree_node); j++ {
+			if contacts[i].NodeID.Equals(tree_node[j].SelfContact.NodeID) {
+				break
+			}
+		}
+		if j == len(tree_node) {
+			if !(contacts[i].NodeID.Equals(instance1.SelfContact.NodeID)) {
+				t.Error("Wrong contacts")
+			}
+		}
 	}
 
 	// TODO: Check that the correct contacts were stored
@@ -276,5 +304,22 @@ func TestFullBucket(t *testing.T) {
 		instance2.DoPing(host_number, port_number)
 		instance2Size, instance2Info := instance2.GetRoutingTableInfo()
 		fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	}
+}
+
+func TestNodeLeave(t *testing.T) {
+	instance1 := NewKademlia("localhost:10001")
+	fmt.Printf("Please run host localhost:10002 :")
+	//bufio.NewReader(os.Stdin).ReadBytes('\n')
+	host2, port2, _ := StringToIpPort("localhost:10002")
+	_, err := instance1.DoPing(host2, port2)
+	if err != nil {
+		t.Error("Can't ping active peer")
+	}
+	fmt.Printf("Please close the second node")
+	//bufio.NewReader(os.Stdin).ReadBytes('\n')
+	_, err = instance1.DoPing(host2, port2)
+	if err == nil {
+		t.Error("Can ping downed peer")
 	}
 }

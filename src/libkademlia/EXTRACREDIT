@@ -2,3 +2,7 @@ TestFullBucket
     The provided test does not take cover the case when one bucket is full, we cover it herr
 TestHashTable
     This is a standalon test for the hash table module. This is to ease the debug process by making sure each subcomponent is working
+TestNodeLeave
+    This test the senario when a known peer is downed. Since the kademlia server is runned forever, we need to test with a external executing instance. For now, we manually run and close the remote peer.
+    We didn't implement the pausing feature, instead, we relies on the debugger to pause the process so we have time to operate on the remote peer.
+    Executing this directly will result in error. Since the remote peer is not set.  

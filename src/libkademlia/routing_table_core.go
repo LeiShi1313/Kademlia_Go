@@ -13,6 +13,7 @@ const (
 	ROUTING_TABLE_EVENT_UPDATE            = 1
 	ROUTING_TABLE_EVENT_FIND_NEAREST_NODE = 2
 	ROUTING_TABLE_EVENT_LOOK_UP           = 3
+	ROUTING_TABLE_EVENT_FINALIZE          = 4
 )
 
 // RoutingTable : one more bucket for exactly the same, not used
@@ -54,6 +55,9 @@ func (tab *RoutingTable) Dispatcher() {
 				break
 			case ROUTING_TABLE_EVENT_LOOK_UP:
 				Ret = tab.LookUpCore(Event.Arg)
+				break
+			case ROUTING_TABLE_EVENT_FINALIZE:
+				running = false
 				break
 			default:
 				fmt.Printf("Err: unknown command\n")

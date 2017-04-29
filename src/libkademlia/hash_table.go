@@ -15,7 +15,8 @@ func (tab *HashTable) Init(Self *Kademlia) error {
 
 // Finalize : Not thread safe, should be called only once. Must be called before program exit. All functions can't be called after Finalize
 func (tab *HashTable) Finalize() error {
-	close(tab.EventChan)
+	E := HashTableEventArg{nil, nil, nil}
+	tab.Delegate(HASH_TABLE_EVENT_FINALIZE, E)
 	return nil
 }
 

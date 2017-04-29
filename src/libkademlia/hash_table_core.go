@@ -14,6 +14,7 @@ const (
 	HASH_TABLE_EVENT_FIND                   = 2
 	HASH_TABLE_EVENT_REMOVE                 = 3
 	HASH_TABLE_EVENT_FIND_VALUE_AND_CONTACT = 4
+	HASH_TABLE_EVENT_FINALIZE               = 5
 )
 
 // HashTable :
@@ -64,6 +65,9 @@ func (tab *HashTable) Dispatcher() {
 				break
 			case HASH_TABLE_EVENT_FIND_VALUE_AND_CONTACT:
 				Ret = tab.FindValueAndContactCore(Event.Arg)
+				break
+			case HASH_TABLE_EVENT_FINALIZE:
+				running = false
 				break
 			default:
 				fmt.Printf("Err: unknown command\n")
