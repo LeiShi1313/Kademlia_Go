@@ -31,3 +31,5 @@ pkg
 
 *.json
 .vscode/launch.json
+*.tar
+*.gz
