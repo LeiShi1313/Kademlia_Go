@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"net/rpc"
 	"os"
 	"strconv"
 	"strings"
@@ -22,7 +21,7 @@ func main() {
 	// TODO: PUT YOUR GROUP'S NET IDS HERE!
 	// Example:
 	// netIds := "abc123 def456 ghi789"
-	netIds := "khl7265"
+	netIds := "khl7265 lsh9920"
 	if len(netIds) == 0 {
 		log.Fatal("Variable containing group's net IDs is not set!\n")
 	}
@@ -50,26 +49,34 @@ func main() {
 	// Confirm our server is up with a PING request and then exit.
 	// Your code should loop forever, reading instructions from stdin and
 	// printing their results to stdout. See README.txt for more details.
-	_, port, err := net.SplitHostPort(firstPeerStr)
-	client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
-		rpc.DefaultRPCPath+port)
-	if err != nil {
-		log.Fatal("DialHTTP: ", err)
-	}
+	ipstr, portstr, _ := net.SplitHostPort(firstPeerStr)
+	port, _ := strconv.Atoi(portstr)
+	var ip net.IP
+	ip = net.ParseIP(ipstr)
 
 	log.Printf("Pinging initial peer\n")
+	kadem.DoPing(ip, uint16(port))
 
-	// This is a sample of what an RPC looks like
-	// TODO: Replace this with a call to your completed DoPing!
-	ping := new(libkademlia.PingMessage)
-	ping.MsgID = libkademlia.NewRandomID()
-	var pong libkademlia.PongMessage
-	err = client.Call("KademliaRPC.Ping", ping, &pong)
-	if err != nil {
-		log.Fatal("Call: ", err)
-	}
-	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+	/*
+		client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
+			rpc.DefaultRPCPath+port)
+		if err != nil {
+			log.Fatal("DialHTTP: ", err)
+		}
+
+		// This is a sample of what an RPC looks like
+		// TODO: Replace this with a call to your completed DoPing!
+
+		ping := new(libkademlia.PingMessage)
+		ping.MsgID = libkademlia.NewRandomID()
+		var pong libkademlia.PongMessage
+		err = client.Call("KademliaRPC.Ping", ping, &pong)
+		if err != nil {
+			log.Fatal("Call: ", err)
+		}
+		log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
+		log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+	*/
 
 	in := bufio.NewReader(os.Stdin)
 	quit := false
