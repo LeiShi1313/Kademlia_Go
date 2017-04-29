@@ -90,7 +90,7 @@ func (tab *RoutingTable) UpdateCore(Arg RountingTableEventArg) error {
 				return nil
 			}
 			H, _ := tab.Buckets[dist].Top()
-			_, err = tab.Self.DoPing(H.Host, H.Port)
+			_, err = tab.Self.DoInternalPing(H.Host, H.Port)
 			if err != nil { // Can ping head
 				return errors.New("Bucket full")
 			}
