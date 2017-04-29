@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -57,6 +58,9 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 
 	// Add self contact
 	hostname, port, _ = net.SplitHostPort(l.Addr().String())
+	if hostname == "::" {
+		hostname = GetOutboundIP()
+	}
 	port_int, _ := strconv.Atoi(port)
 	ipAddrStrings, err := net.LookupHost(hostname)
 	var host net.IP
@@ -69,6 +73,17 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	gob.Register(errors.New(""))
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
 	return k
+}
+
+func GetOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	localAddr := conn.LocalAddr().String()
+	idx := strings.LastIndex(localAddr, ":")
+	return localAddr[0:idx]
 }
 
 func NewKademlia(laddr string) *Kademlia {
