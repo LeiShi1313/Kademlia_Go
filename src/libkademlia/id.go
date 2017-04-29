@@ -27,6 +27,7 @@ func (id ID) Xor(other ID) (ret ID) {
 }
 
 func (id ID) Increse(increment int) (ret ID) {
+
 	addOn := uint8(increment)
 	for i := IDBytes - 1; i > -1; i-- {
 		ret[i] = uint8(id[i]) + addOn
