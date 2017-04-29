@@ -143,7 +143,9 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	}
 	var reply PongMessage
 	err = client.Call("KademliaRPC.Ping", PingMessage{k.SelfContact, NewRandomID()}, &reply)
-	k.RT.Update(reply.Sender)
+	if err == nil {
+		k.RT.Update(reply.Sender)
+	}
 	return &reply.Sender, err
 }
 
@@ -155,7 +157,9 @@ func (k *Kademlia) DoInternalPing(host net.IP, port uint16) (*Contact, error) {
 	}
 	var reply PongMessage
 	err = client.Call("KademliaRPC.Ping", PingMessage{k.SelfContact, NewRandomID()}, &reply)
-	k.RT.UpdateInternal(reply.Sender)
+	if err == nil {
+		k.RT.UpdateInternal(reply.Sender)
+	}
 	return &reply.Sender, err
 }
 

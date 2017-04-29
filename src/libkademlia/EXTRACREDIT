@@ -1,0 +1,4 @@
+TestFullBucket
+    The provided test does not take cover the case when one bucket is full, we cover it herr
+TestHashTable
+    This is a standalon test for the hash table module. This is to ease the debug process by making sure each subcomponent is working
