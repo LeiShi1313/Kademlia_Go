@@ -73,27 +73,6 @@ func main() {
 		log.Printf("Initial peer: %s\n", (*firstpeer).NodeID.AsString())
 	}
 
-	/*
-		client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
-			rpc.DefaultRPCPath+port)
-		if err != nil {
-			log.Fatal("DialHTTP: ", err)
-		}
-
-		// This is a sample of what an RPC looks like
-		// TODO: Replace this with a call to your completed DoPing!
-
-		ping := new(libkademlia.PingMessage)
-		ping.MsgID = libkademlia.NewRandomID()
-		var pong libkademlia.PongMessage
-		err = client.Call("KademliaRPC.Ping", ping, &pong)
-		if err != nil {
-			log.Fatal("Call: ", err)
-		}
-		log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-		log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
-	*/
-
 	in := bufio.NewReader(os.Stdin)
 	quit := false
 	for !quit {

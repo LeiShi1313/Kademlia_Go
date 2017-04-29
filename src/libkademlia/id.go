@@ -26,6 +26,19 @@ func (id ID) Xor(other ID) (ret ID) {
 	return
 }
 
+func (id ID) Increse(increment int) (ret ID) {
+	addOn := uint8(increment)
+	for i := IDBytes - 1; i > -1; i-- {
+		ret[i] = uint8(id[i]) + addOn
+		if ret[i] < uint8(id[i]) {
+			addOn = ret[i]
+		} else {
+			addOn = 0
+		}
+	}
+	return
+}
+
 // Return -1, 0, or 1, with the same meaning as strcmp, etc.
 func (id ID) Compare(other ID) int {
 	for i := 0; i < IDBytes; i++ {

@@ -6,7 +6,7 @@ package libkademlia
 
 // Init : Not thread safe, should be called only once. Must be called before all other functions can work
 func (tab *RoutingTable) Init(Self *Kademlia) error {
-	for i := 0; i < k; i++ {
+	for i := 0; i < b+1; i++ {
 		tab.Buckets[i].Init()
 	}
 	tab.EventChan = make(chan RountingTableEvent)
@@ -56,8 +56,17 @@ func (tab *RoutingTable) LookUp(id ID) (C Contact, err error) {
 // Size :
 func (tab *RoutingTable) Size() int {
 	ret := 0
-	for i := 0; i < k; i++ {
+	for i := 0; i < b+1; i++ {
 		ret += tab.Buckets[i].size
 	}
 	return ret
+}
+
+// Return size of each bucket
+func (tab *RoutingTable) Info() []int {
+	info := make([]int, b+1)
+	for i, bucket := range tab.Buckets {
+		info[i] = bucket.size
+	}
+	return info
 }
