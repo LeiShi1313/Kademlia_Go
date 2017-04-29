@@ -250,3 +250,31 @@ func TestHashTable(t *testing.T) {
 		t.Error("Id a shouldn't be in table")
 	}
 }
+
+func TestFullBucket(t *testing.T) {
+	instance1 := NewKademlia("localhost:10001")
+	instance2 := NewKademlia("localhost:10002")
+	host2, port2, _ := StringToIpPort("localhost:10002")
+	instance1.DoPing(host2, port2)
+	instance2Size, instance2Info := instance2.GetRoutingTableInfo()
+	fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	tree_node := make([]*Kademlia, 40)
+	firstNodeID := instance2.NodeID
+	nodeId := CopyID(firstNodeID)
+	nodeId[13] = 128
+	for i := 0; i < 40; i++ {
+		if i < 20 {
+			nodeId = nodeId.Increse(1)
+		} else {
+			nodeId[14] = 128
+			nodeId = nodeId.Increse(1)
+		}
+		fmt.Printf("%v  ", nodeId.Xor(firstNodeID))
+		address := "localhost:" + strconv.Itoa(10003+i)
+		tree_node[i] = NewKademliaWithId(address, nodeId)
+		host_number, port_number, _ := StringToIpPort(address)
+		instance2.DoPing(host_number, port_number)
+		instance2Size, instance2Info := instance2.GetRoutingTableInfo()
+		fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	}
+}

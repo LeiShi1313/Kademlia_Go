@@ -61,3 +61,12 @@ func (tab *RoutingTable) Size() int {
 	}
 	return ret
 }
+
+// Info : Return size of each bucket
+func (tab *RoutingTable) Info() []int {
+	info := make([]int, b+1)
+	for i, bucket := range tab.Buckets {
+		info[i] = bucket.size
+	}
+	return info
+}

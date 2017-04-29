@@ -19,6 +19,20 @@ func (id ID) AsString() string {
 	return hex.EncodeToString(id[0:IDBytes])
 }
 
+func (id ID) Increse(increment int) (ret ID) {
+
+	addOn := uint8(increment)
+	for i := IDBytes - 1; i > -1; i-- {
+		ret[i] = uint8(id[i]) + addOn
+		if ret[i] < uint8(id[i]) {
+			addOn = ret[i]
+		} else {
+			addOn = 0
+		}
+	}
+	return
+}
+
 func (id ID) Xor(other ID) (ret ID) {
 	for i := 0; i < IDBytes; i++ {
 		ret[i] = id[i] ^ other[i]

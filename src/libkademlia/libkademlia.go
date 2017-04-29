@@ -109,6 +109,12 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	return &contact, err
 }
 
+func (k *Kademlia) GetRoutingTableInfo() (total int, info []int) {
+	info = k.RT.Info()
+	total = k.RT.Size()
+	return
+}
+
 type CommandFailed struct {
 	msg string
 }
