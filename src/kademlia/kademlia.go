@@ -49,13 +49,29 @@ func main() {
 	// Confirm our server is up with a PING request and then exit.
 	// Your code should loop forever, reading instructions from stdin and
 	// printing their results to stdout. See README.txt for more details.
-	ipstr, portstr, _ := net.SplitHostPort(firstPeerStr)
-	port, _ := strconv.Atoi(portstr)
 	var ip net.IP
-	ip = net.ParseIP(ipstr)
+	ipstr, portstr, _ := net.SplitHostPort(firstPeerStr)
+	hoststrs, err := net.LookupHost(ipstr)
+	if err != nil {
+		log.Printf("ERR: Could not find the provided hostname")
+		return
+	}
+	for i := 0; i < len(hoststrs); i++ {
+		ip = net.ParseIP(hoststrs[i])
+		if ip.To4() != nil {
+			break
+		}
+	}
+	port, _ := strconv.Atoi(portstr)
 
 	log.Printf("Pinging initial peer\n")
-	kadem.DoPing(ip, uint16(port))
+
+	firstpeer, err := kadem.DoPing(ip, uint16(port))
+	if err != nil {
+		log.Printf("Can't ping initial peer: %s\n", err.Error())
+	} else {
+		log.Printf("Initial peer: %s\n", (*firstpeer).NodeID.AsString())
+	}
 
 	/*
 		client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
