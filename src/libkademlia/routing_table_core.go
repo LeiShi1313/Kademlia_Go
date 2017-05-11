@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	ROUTING_TABLE_EVENT_UPDATE            = 1
-	ROUTING_TABLE_EVENT_FIND_NEAREST_NODE = 2
-	ROUTING_TABLE_EVENT_LOOK_UP           = 3
-	ROUTING_TABLE_EVENT_FINALIZE          = 4
+	ROUTING_TABLE_EVENT_UPDATE                  = 1
+	ROUTING_TABLE_EVENT_FIND_NEAREST_NODE       = 2
+	ROUTING_TABLE_EVENT_LOOK_UP                 = 3
+	ROUTING_TABLE_EVENT_FINALIZE                = 4
+	ROUTING_TABLE_EVENT_FIND_ALPHA_NEAREST_NODE = 5
 )
 
 // RoutingTable : one more bucket for exactly the same, not used
@@ -52,6 +53,9 @@ func (tab *RoutingTable) Dispatcher() {
 				break
 			case ROUTING_TABLE_EVENT_FIND_NEAREST_NODE:
 				Ret = tab.FindNearestNodeCore(Event.Arg)
+				break
+			case ROUTING_TABLE_EVENT_FIND_ALPHA_NEAREST_NODE:
+				Ret = tab.FindAlphaNearestNodeCore(Event.Arg)
 				break
 			case ROUTING_TABLE_EVENT_LOOK_UP:
 				Ret = tab.LookUpCore(Event.Arg)
@@ -126,6 +130,35 @@ func (tab *RoutingTable) FindNearestNodeCore(Arg RountingTableEventArg) error {
 	for j := dist - 1; j > -1; j-- {
 		if len(C) < k {
 			for i := 0; i < tab.Buckets[j].size && len(C) < k; i++ {
+				T, _ := tab.Buckets[j].Get(i)
+				C = append(C, T)
+			}
+		} else {
+			break
+		}
+	}
+	*Arg.CS = &C
+	return nil
+}
+
+// FindAlphaNearestNodeCore :
+func (tab *RoutingTable) FindAlphaNearestNodeCore(Arg RountingTableEventArg) error {
+	var C []Contact
+	id := *Arg.ID
+	dist := (tab.Self.NodeID.Xor(id)).PrefixLenEx()
+	for j := dist; j < alpha; j++ {
+		if len(C) < alpha {
+			for i := 0; i < tab.Buckets[j].size && len(C) < alpha; i++ {
+				T, _ := tab.Buckets[j].Get(i)
+				C = append(C, T)
+			}
+		} else {
+			break
+		}
+	}
+	for j := dist - 1; j > -1; j-- {
+		if len(C) < alpha {
+			for i := 0; i < tab.Buckets[j].size && len(C) < alpha; i++ {
 				T, _ := tab.Buckets[j].Get(i)
 				C = append(C, T)
 			}

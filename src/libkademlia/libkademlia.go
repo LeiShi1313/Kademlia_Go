@@ -149,6 +149,9 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	return &reply.Sender, err
 }
 
+/*
+NOTE: This function can only be used within routing table core
+*/
 func (k *Kademlia) DoInternalPing(host net.IP, port uint16) (*Contact, error) {
 	client, err := k.dial(host, port)
 
@@ -214,13 +217,85 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	return k.HT.Find(searchKey)
 }
 
+func (k *Kademlia) DoFindNodeAsync(contact *Contact, searchKey ID) (*rpc.Call, error) {
+	// TODO: Implement
+	client, err := k.dial(contact.Host, contact.Port)
+	if err != nil {
+		return nil, err
+	}
+	var reply FindNodeResult
+	msgId := NewRandomID()
+	return client.Go("KademliaRPC.FindNode", FindNodeRequest{k.SelfContact, msgId, searchKey}, &reply, nil), nil
+}
+
+func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
+	Ret := *(<-Call.Done)
+	err := Ret.Error
+	if err != nil {
+		return nil, err
+	}
+	req, ok := Ret.Args.(FindNodeRequest)
+	if !ok {
+		return nil, &CommandFailed{"Unknown Error"}
+	}
+	reply, ok2 := Ret.Args.(FindNodeResult)
+	if !ok2 {
+		return nil, &CommandFailed{"Unknown Error"}
+	}
+	if reply.MsgID != req.MsgID {
+		return nil, &CommandFailed{"MsgId inconsitent"}
+	}
+	return reply.Nodes, nil
+}
+
 // For project 2!
-func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
+func (k *Kademlia) DoIterativeFindNode(id ID) (C []Contact, e error) {
+	mindist := -1
+	inlist := make(map[ID]bool)
+	shortlist, n, err := k.RT.FindNearestNode(k.SelfContact.NodeID)
+	if err != nil {
+		return nil, err
+	}
+	if n > alpha {
+		shortlist = shortlist[:alpha]
+	}
+	for i := 0; i < len(shortlist); i++ {
+		inlist[shortlist[i].NodeID] = true
+		dist := id.Xor(shortlist[i].NodeID).PrefixLenEx()
+		if mindist < 0 || dist < mindist {
+			mindist = dist
+		}
+	}
+
+	conti := true
+	for conti {
+		/* Avaiable contact may be fewer than Alpha*/
+		n = alpha
+		if len(shortlist) < n {
+			n = len(shortlist)
+		}
+
+	}
+
 	return nil, &CommandFailed{"Not implemented"}
 }
-func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
-	return nil, &CommandFailed{"Not implemented"}
+
+func (k *Kademlia) DoIterativeStore(key ID, value []byte) (received []Contact, e error) {
+	C, err := k.DoIterativeFindNode(key)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(C); i++ {
+		ret := k.DoStore(&C[i], key, value)
+		if ret == nil {
+			received = append(received, C[i])
+		}
+	}
+
+	return received, nil
 }
+
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	return nil, &CommandFailed{"Not implemented"}
 }

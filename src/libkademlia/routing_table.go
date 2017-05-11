@@ -45,6 +45,15 @@ func (tab *RoutingTable) FindNearestNode(id ID) (C []Contact, num int, err error
 	return C, len(C), ret
 }
 
+// FindAlphaNearestNode : FIND_NODE
+func (tab *RoutingTable) FindAlphaNearestNode(id ID) (C []Contact, num int, err error) {
+	var T *[]Contact
+	E := RountingTableEventArg{&id, nil, &T}
+	ret := tab.Delegate(ROUTING_TABLE_EVENT_FIND_ALPHA_NEAREST_NODE, E)
+	C = **(E.CS)
+	return C, len(C), ret
+}
+
 // LookUp : ID to Contact
 func (tab *RoutingTable) LookUp(id ID) (C Contact, err error) {
 	var T Contact
