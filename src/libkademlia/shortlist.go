@@ -11,10 +11,11 @@ import (
 
 // ShortList :
 type ShortList struct {
-	Entries    map[ID]ShortListEntry
-	ClosetNode *ShortListEntry
-	Target     ID
-	Parent     *Kademlia
+	Entries          map[ID]ShortListEntry
+	ClosetNode       *ShortListEntry
+	ClosetActiveNode *ShortListEntry
+	Target           ID
+	Parent           *Kademlia
 }
 
 // ShortListEntry :
@@ -37,10 +38,12 @@ func (L EntryList) Less(i, j int) bool {
 }
 
 // Init : Not thread safe, should be called only once. Must be called before all other functions can work
-func (l *ShortList) Init(Self *Kademlia) error {
+func (l *ShortList) Init(Self *Kademlia, target ID) error {
 	l.Parent = Self
 	l.Entries = make(map[ID]ShortListEntry)
-	l.ClosetNode = nil // ClosetNode undefined
+	l.ClosetNode = nil       // ClosetNode undefined
+	l.ClosetActiveNode = nil // ClosetNode undefined
+	l.Target = target
 	return nil
 }
 
@@ -51,6 +54,9 @@ func (l *ShortList) Add(C Contact) error {
 		return errors.New("Already in list")
 	}
 	E := ShortListEntry{C, C.NodeID.Xor(l.Target).PrefixLenEx(), false}
+	if l.ClosetNode == nil || l.ClosetNode.Dist > E.Dist {
+		l.ClosetNode = &E
+	}
 	l.Entries[C.NodeID] = E
 	return nil
 }
@@ -73,35 +79,50 @@ func (l *ShortList) Remove(id ID) error {
 	return nil
 }
 
-// Get : Not thread safe
+// Find : Not thread safe
 func (l *ShortList) Find(id ID) (E ShortListEntry, err error) {
 	var ok bool
 	E, ok = l.Entries[id]
 	if !ok {
 		return E, errors.New("Not in list")
 	}
-	return E, nil;
+	return E, nil
 }
 
-// Get : Not thread safe
-func (l *ShortList) FindContact(id ID) (C Contact, err error) {
-	E, ok := l.Find(id)
-	if !ok {
-		return C, errors.New("Not in list")
+// FindContact : Not thread safe
+func (l *ShortList) FindContact(id ID) (Contact, error) {
+	E, err := l.Find(id)
+	return E.Conn, err
+}
+
+// GetAllEntry : Not thread safe
+func (l *ShortList) GetAllEntry() (Ent []ShortListEntry) {
+	for _, E := range l.Entries {
+		Ent = append(Ent, E)
 	}
-	return E.Conn, nil
+	return Ent
 }
 
-// GetAll : Not thread safe
-func (l *ShortList) GetAll() (C []Contact) {
+// GetAllContact : Not thread safe
+func (l *ShortList) GetAllContact() (C []Contact) {
 	for _, E := range l.Entries {
 		C = append(C, E.Conn)
 	}
 	return C
 }
 
-// GetActive : Not thread safe
-func (l *ShortList) GetActive() (C []Contact) {
+// GetActiveEntry : Not thread safe
+func (l *ShortList) GetActiveEntry() (Ent []ShortListEntry) {
+	for _, E := range l.Entries {
+		if E.Active {
+			Ent = append(Ent, E)
+		}
+	}
+	return Ent
+}
+
+// GetActiveContact : Not thread safe
+func (l *ShortList) GetActiveContact() (C []Contact) {
 	for _, E := range l.Entries {
 		if E.Active {
 			C = append(C, E.Conn)
@@ -110,12 +131,62 @@ func (l *ShortList) GetActive() (C []Contact) {
 	return C
 }
 
-// GetNearest : Not thread safe
-func (l *ShortList) GetNearest(n int) C []Contact {
-	E := l.GetActive()
-	sort.Sort(EntryList(E))
-	for i := 0; i < n && i < len(E); i++{
-		C = append(C, E[i].)
+// GetInactiveEntry : Not thread safe
+func (l *ShortList) GetInactiveEntry() (Ent []ShortListEntry) {
+	for _, E := range l.Entries {
+		if !E.Active {
+			Ent = append(Ent, E)
+		}
+	}
+	return Ent
+}
+
+// GetInactiveContact : Not thread safe
+func (l *ShortList) GetInactiveContact() (C []Contact) {
+	for _, E := range l.Entries {
+		if !E.Active {
+			C = append(C, E.Conn)
+		}
 	}
 	return C
+}
+
+// GetNearestN : Get nearest n nodes that's not proven active
+func (l *ShortList) GetNearestN(n int) (C []Contact) {
+	E := l.GetInactiveEntry()
+	sort.Sort(EntryList(E))
+	for i := 0; i < n && i < len(E); i++ {
+		C = append(C, E[i].Conn)
+	}
+	return C
+}
+
+// Size : Size of short list
+func (l *ShortList) Size() int {
+	return len(l.Entries)
+}
+
+// ActiveSize : Number of active nodes
+func (l *ShortList) ActiveSize() int {
+	ret := 0
+	for _, E := range l.Entries {
+		if E.Active {
+			ret++
+		}
+	}
+	return ret
+}
+
+// SetActive : Number of active nodes
+func (l *ShortList) SetActive(id ID) error {
+	E, ok := l.Entries[id]
+	if !ok {
+		return errors.New("Not in list")
+	}
+	if l.ClosetActiveNode == nil || l.ClosetActiveNode.Dist > E.Dist {
+		l.ClosetNode = &E
+	}
+	E.Active = true
+	l.Entries[id] = E
+	return nil
 }

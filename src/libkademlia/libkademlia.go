@@ -229,6 +229,9 @@ func (k *Kademlia) DoFindNodeAsync(contact *Contact, searchKey ID) (*rpc.Call, e
 }
 
 func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
+	if Call == nil {
+		return nil, &CommandFailed{"Null handle"}
+	}
 	Ret := *(<-Call.Done)
 	err := Ret.Error
 	if err != nil {
@@ -249,35 +252,56 @@ func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
 }
 
 // For project 2!
-func (k *Kademlia) DoIterativeFindNode(id ID) (C []Contact, e error) {
-	mindist := -1
-	inlist := make(map[ID]bool)
-	shortlist, n, err := k.RT.FindNearestNode(k.SelfContact.NodeID)
+func (kad *Kademlia) DoIterativeFindNode(id ID) (C []Contact, e error) {
+	list := new(ShortList)
+	list.Init(kad, id)
+	initnodes, _, err := kad.RT.FindNearestNode(id)
 	if err != nil {
 		return nil, err
 	}
-	if n > alpha {
-		shortlist = shortlist[:alpha]
-	}
-	for i := 0; i < len(shortlist); i++ {
-		inlist[shortlist[i].NodeID] = true
-		dist := id.Xor(shortlist[i].NodeID).PrefixLenEx()
-		if mindist < 0 || dist < mindist {
-			mindist = dist
+	list.MAdd(initnodes)
+
+	quit := false
+	for !quit {
+		rpchwnd := make([]*rpc.Call, 0)
+		alphacontacts := list.GetNearestN(alpha)
+		for i := 0; i < len(alphacontacts); i++ {
+			hwnd, _ := kad.DoFindNodeAsync(&alphacontacts[i], id)
+			rpchwnd = append(rpchwnd, hwnd)
+		}
+		// TODO: Is it the closet node or closet active node?
+		olddist := list.ClosetNode.Dist
+		for i := 0; i < len(alphacontacts); i++ {
+			Ret, err := kad.DoFindNodeWait(rpchwnd[i])
+			if err != nil {
+				/* Not responding */
+				list.Remove(alphacontacts[i].NodeID)
+			} else {
+				list.SetActive(alphacontacts[i].NodeID)
+				list.MAdd(Ret)
+			}
+		}
+		newdist := list.ClosetNode.Dist
+
+		if list.ActiveSize() >= k {
+			quit = true
+			continue
+		}
+
+		if newdist >= olddist {
+			quit = true
+			// TODO: Spec not clear
+			// Should we terminate here, or keep contact those node not contacted?
+			continue
 		}
 	}
 
-	conti := true
-	for conti {
-		/* Avaiable contact may be fewer than Alpha*/
-		n = alpha
-		if len(shortlist) < n {
-			n = len(shortlist)
-		}
-
+	active := list.GetActiveContact()
+	if len(active) > k {
+		active = active[:k]
 	}
 
-	return nil, &CommandFailed{"Not implemented"}
+	return active, nil
 }
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) (received []Contact, e error) {
