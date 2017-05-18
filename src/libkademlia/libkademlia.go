@@ -225,18 +225,28 @@ func (k *Kademlia) DoFindNodeAsync(contact *Contact, searchKey ID) (*rpc.Call, e
 	}
 	var reply FindNodeResult
 	msgId := NewRandomID()
+
 	return client.Go("KademliaRPC.FindNode", FindNodeRequest{k.SelfContact, msgId, searchKey}, &reply, nil), nil
 }
 
-func (k *Kademlia) doFindValueAsync(contact *Contact, key ID) (*rpc.Call, error) {
+type FindValueResultPair struct {
+	res FindValueResult
+	index int
+}
+
+func (k *Kademlia) doFindValueAsync(contact *Contact, key ID, index int, done chan FindValueResultPair) (error) {
 	client, err := k.dial(contact.Host, contact.Port)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	var reply FindValueResult
 	msgId := NewRandomID()
 	findValueRequest := FindValueRequest{k.SelfContact, msgId, key}
-	return client.Go("KademliaRPC.FindValue", findValueRequest, &reply, nil), nil
+	if err = client.Call("KademliaRPC.FindValue", findValueRequest, &reply); err != nil {
+		return nil
+	}
+	done <- FindValueResultPair{reply, index}
+	return nil
 }
 
 
@@ -332,10 +342,6 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) (received []Contact, e
 	return received, nil
 }
 
-type FindValueResultPair struct {
-	res FindValueResult
-	index int
-}
 
 func (k *Kademlia) rpcCallFanIn(chans []chan *rpc.Call, out chan FindValueResultPair) {
 	for i, ch := range chans {
@@ -376,47 +382,44 @@ func (k *Kademlia) rpcCallFanIn(chans []chan *rpc.Call, out chan FindValueResult
 func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	list := new(ShortList)
 	list.Init(kadamlia, key)
-	initNode, _, err := kadamlia.RT.FindNearestNode(key)
+	initnodes, _, err := kadamlia.RT.FindNearestNode(key)
 	if err != nil {
 		return nil, err
 	}
-	list.MAdd(initNode)
+	list.MAdd(initnodes)
 
 	quit := false
+	done := make(chan FindValueResultPair)
 	for !quit {
-		rpcChan := make([]chan *rpc.Call, 0)
 		alphacontacts := list.GetNearestN(alpha)
-		for _, contact := range alphacontacts {
-			handle, _ := kadamlia.doFindValueAsync(&contact, key)
-			rpcChan = append(rpcChan, handle.Done)
-		}
-		count := len(rpcChan)
-		out := make(chan FindValueResultPair)
-		kadamlia.rpcCallFanIn(rpcChan, out)
-
-		oldDist := list.ClosetNode.Dist
-		for count != 0 {
-			select {
-			case res := <-out:
-				// TODO deal with result
-				if res.res.Err != nil {
-					list.Remove(alphacontacts[res.index].NodeID)
-				}
-				count -= 1
+		for i := 0; i < len(alphacontacts); i++ {
+			err := kadamlia.doFindValueAsync(&alphacontacts[i], key, i, done)
+			if err != nil {
+				panic(err)
 			}
 		}
-		newDist := list.ClosetNode.Dist
+		// TODO: Is it the closet node or closet active node?
+		olddist := list.ClosetNode.Dist
+		for {
+			select {
+			case pair := <- done:
+				fmt.Println(pair)
+			}
+		}
+		newdist := list.ClosetNode.Dist
 
 		if list.ActiveSize() >= k {
 			quit = true
 			continue
 		}
-		if newDist >= oldDist {
+
+		if newdist >= olddist {
 			quit = true
+			// TODO: Spec not clear
+			// Should we terminate here, or keep contact those node not contacted?
 			continue
 		}
 	}
-
 
 	return nil, &CommandFailed{"Not implemented"}
 }

@@ -284,8 +284,8 @@ func TestFullBucket(t *testing.T) {
 	instance2 := NewKademlia("localhost:10002")
 	host2, port2, _ := StringToIpPort("localhost:10002")
 	instance1.DoPing(host2, port2)
-	instance2Size, instance2Info := instance2.GetRoutingTableInfo()
-	fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	// instance2Size, instance2Info := instance2.GetRoutingTableInfo()
+	// fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
 	tree_node := make([]*Kademlia, 40)
 	firstNodeID := instance2.NodeID
 	nodeId := CopyID(firstNodeID)
@@ -302,8 +302,11 @@ func TestFullBucket(t *testing.T) {
 		tree_node[i] = NewKademliaWithId(address, nodeId)
 		host_number, port_number, _ := StringToIpPort(address)
 		instance2.DoPing(host_number, port_number)
-		instance2Size, instance2Info := instance2.GetRoutingTableInfo()
-		fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	}
+
+	instance2Size, _ := instance2.GetRoutingTableInfo()
+	if instance2Size != 41 {
+		t.Error("Full bucket panic")
 	}
 }
 
@@ -321,6 +324,44 @@ func TestNodeLeave(t *testing.T) {
 	_, err = instance1.DoPing(host2, port2)
 	if err == nil {
 		t.Error("Can ping downed peer")
+	}
+}
+
+func TestIterativeStore(t *testing.T) {
+	instance1 := NewKademlia("localhost:10001")
+	instance2 := NewKademlia("localhost:10002")
+	host2, port2, _ := StringToIpPort("localhost:10002")
+	_, err := instance1.DoPing(host2, port2)
+	if err != nil {
+		t.Error("Can't ping instance1")
+	}
+	if instance2Size, _ := instance2.GetRoutingTableInfo(); instance2Size != 1 {
+		t.Error("Kademlia.GetRoutingTableInfo return incorrect size")
+	}
+	tree_node := make([]*Kademlia, 40)
+	for i := 0; i < 40; i++ {
+		address := "localhost:" + strconv.Itoa(10003+i)
+		tree_node[i] = NewKademlia(address)
+		host_number, port_number, _ := StringToIpPort(address)
+		_, err = instance2.DoPing(host_number, port_number)
+		if err != nil {
+			t.Error("Can't ping instance" + strconv.Itoa(i+3))
+		}
+	}
+	if instance2Size, _ := instance2.GetRoutingTableInfo(); instance2Size != 41 {
+		t.Error("Kademlia.GetRoutingTableInfo return incorrect size")
+	}
+	key := NewRandomID()
+	val := "Hi"
+	instance2.DoIterativeStore(key, []byte(val))
+	for i := 0; i < 40; i++ {
+		result, err := tree_node[i].LocalFindValue(key)
+		if err != nil {
+			fmt.Println(i,":",err)
+		} else {
+			fmt.Println(i,":",result)
+		}
+
 	}
 }
 
@@ -353,5 +394,5 @@ func TestIterativeFindValue(t *testing.T) {
 	if instance2Size != 41 {
 		t.Error("Kademlia.GetRoutingTableInfo return incorrect size")
 	}
-	
+
 }
