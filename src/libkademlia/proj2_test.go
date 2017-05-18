@@ -25,7 +25,7 @@ func TestNodeLeave(t *testing.T) {
 	host3, port3, _ := StringToIpPort("localhost:20003")
 	//bufio.NewReader(os.Stdin).ReadBytes('\n')
 	_, err = instance1.DoPing(host3, port3)
-	if err != nil {
+	if err == nil {
 		t.Error("Can ping downed peer")
 	}
 }
