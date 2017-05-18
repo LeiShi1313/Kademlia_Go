@@ -126,7 +126,6 @@ func (e *CommandFailed) Error() string {
 func (k *Kademlia) Finalize() {
 	k.RT.Finalize()
 	k.HT.Finalize()
-
 }
 
 func (k *Kademlia) dial(host net.IP, port uint16) (*rpc.Client, error) {
@@ -230,11 +229,11 @@ func (k *Kademlia) DoFindNodeAsync(contact *Contact, searchKey ID) (*rpc.Call, e
 }
 
 type FindValueResultPair struct {
-	res FindValueResult
+	res   FindValueResult
 	index int
 }
 
-func (k *Kademlia) doFindValueAsync(contact *Contact, key ID, index int, done chan FindValueResultPair) (error) {
+func (k *Kademlia) doFindValueAsync(contact *Contact, key ID, index int, done chan FindValueResultPair) error {
 	client, err := k.dial(contact.Host, contact.Port)
 	if err != nil {
 		return err
@@ -249,7 +248,6 @@ func (k *Kademlia) doFindValueAsync(contact *Contact, key ID, index int, done ch
 	return nil
 }
 
-
 func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
 	if Call == nil {
 		return nil, &CommandFailed{"Null handle"}
@@ -259,13 +257,10 @@ func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, ok := Ret.Args.(FindNodeRequest)
-	if !ok {
-		return nil, &CommandFailed{"Unknown Error"}
-	}
-	reply, ok2 := Ret.Args.(FindNodeResult)
-	if !ok2 {
-		return nil, &CommandFailed{"Unknown Error"}
+	req := Ret.Args.(FindNodeRequest)
+	reply := Ret.Reply.(*FindNodeResult)
+	if reply.Err != nil {
+		return nil, reply.Err
 	}
 	if reply.MsgID != req.MsgID {
 		return nil, &CommandFailed{"MsgId inconsitent"}
@@ -342,38 +337,37 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) (received []Contact, e
 	return received, nil
 }
 
-
 func (k *Kademlia) rpcCallFanIn(chans []chan *rpc.Call, out chan FindValueResultPair) {
 	for i, ch := range chans {
 		go func(i int, in chan *rpc.Call) {
 			for ret := range in {
 				err := ret.Error
 				if err != nil {
-					out<-FindValueResultPair{
-						FindValueResult{NewRandomID(),nil,nil, err},
+					out <- FindValueResultPair{
+						FindValueResult{NewRandomID(), nil, nil, err},
 						i}
 				}
 				req, ok := ret.Args.(FindValueRequest)
 				if !ok {
-					out<-FindValueResultPair{
+					out <- FindValueResultPair{
 						FindValueResult{NewRandomID(), nil, nil,
 							&CommandFailed{"Unknown Error"}},
 						i}
 				}
 				res, ok := ret.Args.(FindValueResult)
 				if !ok {
-					out<-FindValueResultPair{
+					out <- FindValueResultPair{
 						FindValueResult{NewRandomID(), nil, nil,
 							&CommandFailed{"Unknown Error"}},
 						i}
 				}
 				if req.MsgID != res.MsgID {
-					out<-FindValueResultPair{
+					out <- FindValueResultPair{
 						FindValueResult{NewRandomID(), nil, nil,
 							&CommandFailed{"MsgId inconsitent"}},
 						i}
 				}
-				out<-FindValueResultPair{res, i}
+				out <- FindValueResultPair{res, i}
 			}
 		}(i, ch)
 	}
@@ -402,7 +396,7 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 		olddist := list.ClosetNode.Dist
 		for {
 			select {
-			case pair := <- done:
+			case pair := <-done:
 				fmt.Println(pair)
 			}
 		}
