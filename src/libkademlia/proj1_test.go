@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 	//"time"
-	"fmt"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -284,8 +283,8 @@ func TestFullBucket(t *testing.T) {
 	instance2 := NewKademlia("localhost:10002")
 	host2, port2, _ := StringToIpPort("localhost:10002")
 	instance1.DoPing(host2, port2)
-	instance2Size, instance2Info := instance2.GetRoutingTableInfo()
-	fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	// instance2Size, instance2Info := instance2.GetRoutingTableInfo()
+	// fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
 	tree_node := make([]*Kademlia, 40)
 	firstNodeID := instance2.NodeID
 	nodeId := CopyID(firstNodeID)
@@ -297,30 +296,19 @@ func TestFullBucket(t *testing.T) {
 			nodeId[14] = 128
 			nodeId = nodeId.Increse(1)
 		}
-		fmt.Printf("%v  ", nodeId.Xor(firstNodeID))
+		// fmt.Printf("%v  ", nodeId.Xor(firstNodeID))
 		address := "localhost:" + strconv.Itoa(10003+i)
 		tree_node[i] = NewKademliaWithId(address, nodeId)
 		host_number, port_number, _ := StringToIpPort(address)
 		instance2.DoPing(host_number, port_number)
-		instance2Size, instance2Info := instance2.GetRoutingTableInfo()
-		fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+		// instance2Size, instance2Info := instance2.GetRoutingTableInfo()
+		// fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
 	}
-}
 
-func TestNodeLeave(t *testing.T) {
-	instance1 := NewKademlia("localhost:10001")
-	fmt.Printf("Please run host localhost:10002 :")
-	//bufio.NewReader(os.Stdin).ReadBytes('\n')
-	host2, port2, _ := StringToIpPort("localhost:10002")
-	_, err := instance1.DoPing(host2, port2)
-	if err != nil {
-		t.Error("Can't ping active peer")
-	}
-	fmt.Printf("Please close the second node")
-	//bufio.NewReader(os.Stdin).ReadBytes('\n')
-	_, err = instance1.DoPing(host2, port2)
-	if err == nil {
-		t.Error("Can ping downed peer")
+	instance2Size, _ := instance2.GetRoutingTableInfo()
+	// fmt.Printf("%v\n%v\n", instance2Size, instance2Info)
+	if instance2Size != 21 {
+		t.Error("Full bucket panic")
 	}
 }
 

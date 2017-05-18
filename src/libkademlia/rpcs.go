@@ -5,6 +5,7 @@ package libkademlia
 // other groups' code.
 
 import (
+	"fmt"
 	"net"
 )
 
@@ -17,6 +18,15 @@ type Contact struct {
 	NodeID ID
 	Host   net.IP
 	Port   uint16
+}
+
+// RPCError return error type
+type RPCError struct {
+	Msg string
+}
+
+func (e *RPCError) Error() string {
+	return fmt.Sprintf("%s", e.Msg)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,18 +114,22 @@ type FindValueResult struct {
 	MsgID ID
 	Value []byte
 	Nodes []Contact
-	Err   error
+	Err   RPCError
 }
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// Fill up result
 	res.MsgID = CopyID(req.MsgID)
-	res.Value, res.Nodes, res.Err = k.kademlia.HT.FindValueAndContact(req.Key)
+	var err error
+	res.Value, res.Nodes, err = k.kademlia.HT.FindValueAndContact(req.Key)
 
 	//	res.Nodes, _, res.Err = k.kademlia.RT.FindNearestNode(req.Key)
 	//	res.Value, res.Err = k.kademlia.HT.Find(req.Key)
-	if res.Err != nil {
+	if err != nil {
 		res.Value = nil
+		res.Err = RPCError{err.Error()}
+	} else {
+		res.Err = RPCError{}
 	}
 	//update contact
 	k.kademlia.RT.Update(req.Sender)

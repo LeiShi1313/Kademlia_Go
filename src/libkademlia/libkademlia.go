@@ -71,6 +71,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	gob.Register(errors.New(""))
+	gob.Register(RPCError{})
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
 	return k
 }
@@ -126,7 +127,6 @@ func (e *CommandFailed) Error() string {
 func (k *Kademlia) Finalize() {
 	k.RT.Finalize()
 	k.HT.Finalize()
-
 }
 
 func (k *Kademlia) dial(host net.IP, port uint16) (*rpc.Client, error) {
@@ -207,8 +207,9 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		return nil, nil, err
 	}
 	var reply FindValueResult
+	gob.Register(errors.New(""))
 	err = client.Call("KademliaRPC.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
-	return reply.Value, reply.Nodes, reply.Err
+	return reply.Value, reply.Nodes, &reply.Err
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
@@ -225,7 +226,28 @@ func (k *Kademlia) DoFindNodeAsync(contact *Contact, searchKey ID) (*rpc.Call, e
 	}
 	var reply FindNodeResult
 	msgId := NewRandomID()
+
 	return client.Go("KademliaRPC.FindNode", FindNodeRequest{k.SelfContact, msgId, searchKey}, &reply, nil), nil
+}
+
+type FindValueResultPair struct {
+	res   FindValueResult
+	index int
+}
+
+func (k *Kademlia) doFindValueAsync(contact *Contact, key ID, index int, done chan FindValueResultPair) error {
+	client, err := k.dial(contact.Host, contact.Port)
+	if err != nil {
+		return err
+	}
+	var reply FindValueResult
+	msgId := NewRandomID()
+	findValueRequest := FindValueRequest{k.SelfContact, msgId, key}
+	if err = client.Call("KademliaRPC.FindValue", findValueRequest, &reply); err != nil {
+		return err
+	}
+	done <- FindValueResultPair{reply, index}
+	return nil
 }
 
 func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
@@ -237,13 +259,10 @@ func (k *Kademlia) DoFindNodeWait(Call *rpc.Call) ([]Contact, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, ok := Ret.Args.(FindNodeRequest)
-	if !ok {
-		return nil, &CommandFailed{"Unknown Error"}
-	}
-	reply, ok2 := Ret.Args.(FindNodeResult)
-	if !ok2 {
-		return nil, &CommandFailed{"Unknown Error"}
+	req := Ret.Args.(FindNodeRequest)
+	reply := Ret.Reply.(*FindNodeResult)
+	if reply.Err != nil {
+		return nil, reply.Err
 	}
 	if reply.MsgID != req.MsgID {
 		return nil, &CommandFailed{"MsgId inconsitent"}
@@ -320,8 +339,51 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) (received []Contact, e
 	return received, nil
 }
 
-func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-	return nil, &CommandFailed{"Not implemented"}
+func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
+	list := new(ShortList)
+	list.Init(kadamlia, key)
+	initnodes, _, err := kadamlia.RT.FindNearestNode(key)
+	if err != nil {
+		return nil, err
+	}
+	list.MAdd(initnodes)
+
+	quit := false
+	found := false
+	done := make(chan FindValueResultPair)
+	nullValueContacts := make([]Contact, 0)
+	for !quit {
+		alphacontacts := list.GetNearestN(alpha)
+		for i := 0; i < len(alphacontacts); i++ {
+			go kadamlia.doFindValueAsync(&alphacontacts[i], key, i, done)
+		}
+		count := len(alphacontacts)
+		for count > 0 {
+			select {
+			case pair := <-done:
+				if pair.res.Err.Msg != "" {
+					nullValueContacts = append(nullValueContacts, alphacontacts[pair.index])
+					list.Remove(alphacontacts[pair.index].NodeID)
+					list.MAdd(pair.res.Nodes)
+					// fmt.Println(pair.index, ": ", pair.res.Err.Msg)
+				} else {
+					// Found value
+					// fmt.Println(pair.index, ": ", pair.res.Value)
+					value = pair.res.Value
+					quit = true
+					found = true
+				}
+				count--
+			}
+		}
+	}
+	// Store value to contacts don't have
+	if found {
+		for _, c := range nullValueContacts {
+			kadamlia.DoStore(&c, key, value)
+		}
+	}
+	return value, nil
 }
 
 // For project 3!
