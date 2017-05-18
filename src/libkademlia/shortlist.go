@@ -177,7 +177,7 @@ func (l *ShortList) ActiveSize() int {
 	return ret
 }
 
-// SetActive : Number of active nodes
+// SetActive : Set node as active
 func (l *ShortList) SetActive(id ID) error {
 	E, ok := l.Entries[id]
 	if !ok {
