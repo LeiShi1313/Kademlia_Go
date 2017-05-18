@@ -71,6 +71,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	gob.Register(errors.New(""))
+	gob.Register(RPCError{})
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
 	return k
 }
@@ -206,8 +207,9 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		return nil, nil, err
 	}
 	var reply FindValueResult
+	gob.Register(errors.New(""))
 	err = client.Call("KademliaRPC.FindValue", FindValueRequest{k.SelfContact, NewRandomID(), searchKey}, &reply)
-	return reply.Value, reply.Nodes, reply.Err
+	return reply.Value, reply.Nodes, &reply.Err
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
@@ -242,7 +244,7 @@ func (k *Kademlia) doFindValueAsync(contact *Contact, key ID, index int, done ch
 	msgId := NewRandomID()
 	findValueRequest := FindValueRequest{k.SelfContact, msgId, key}
 	if err = client.Call("KademliaRPC.FindValue", findValueRequest, &reply); err != nil {
-		return nil
+		return err
 	}
 	done <- FindValueResultPair{reply, index}
 	return nil
@@ -335,42 +337,6 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) (received []Contact, e
 	}
 
 	return received, nil
-}
-
-func (k *Kademlia) rpcCallFanIn(chans []chan *rpc.Call, out chan FindValueResultPair) {
-	for i, ch := range chans {
-		go func(i int, in chan *rpc.Call) {
-			for ret := range in {
-				err := ret.Error
-				if err != nil {
-					out <- FindValueResultPair{
-						FindValueResult{NewRandomID(), nil, nil, err},
-						i}
-				}
-				req, ok := ret.Args.(FindValueRequest)
-				if !ok {
-					out <- FindValueResultPair{
-						FindValueResult{NewRandomID(), nil, nil,
-							&CommandFailed{"Unknown Error"}},
-						i}
-				}
-				res, ok := ret.Args.(FindValueResult)
-				if !ok {
-					out <- FindValueResultPair{
-						FindValueResult{NewRandomID(), nil, nil,
-							&CommandFailed{"Unknown Error"}},
-						i}
-				}
-				if req.MsgID != res.MsgID {
-					out <- FindValueResultPair{
-						FindValueResult{NewRandomID(), nil, nil,
-							&CommandFailed{"MsgId inconsitent"}},
-						i}
-				}
-				out <- FindValueResultPair{res, i}
-			}
-		}(i, ch)
-	}
 }
 
 func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {

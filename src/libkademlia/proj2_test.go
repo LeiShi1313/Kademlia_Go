@@ -2,6 +2,7 @@ package libkademlia
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"testing"
 	//"time"
@@ -104,5 +105,16 @@ func TestIterativeFindValue(t *testing.T) {
 	if instance2Size < 30 {
 		t.Error("Kademlia.GetRoutingTableInfo return incorrect size")
 	}
-
+	key := NewRandomID()
+	val := []byte("Hi there, I'm finding something")
+	instance2.DoIterativeStore(key, val)
+	result, err := instance2.DoIterativeFindValue(key)
+	if err != nil {
+		t.Error(fmt.Sprint(err))
+	}
+	if !bytes.Equal(result, val) {
+		t.Error("IterativeStore failed")
+		t.Error(fmt.Sprint("Except: ", val))
+		t.Error(fmt.Sprint("Got: ", result))
+	}
 }
