@@ -349,39 +349,41 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 	list.MAdd(initnodes)
 
 	quit := false
+	found := false
 	done := make(chan FindValueResultPair)
+	nullValueContacts := make([]Contact, 0)
 	for !quit {
 		alphacontacts := list.GetNearestN(alpha)
 		for i := 0; i < len(alphacontacts); i++ {
-			err := kadamlia.doFindValueAsync(&alphacontacts[i], key, i, done)
-			if err != nil {
-				panic(err)
-			}
+			go kadamlia.doFindValueAsync(&alphacontacts[i], key, i, done)
 		}
-		// TODO: Is it the closet node or closet active node?
-		olddist := list.ClosetNode.Dist
-		for {
+		count := len(alphacontacts)
+		for count > 0 {
 			select {
 			case pair := <-done:
-				fmt.Println(pair)
+				if pair.res.Err.Msg != "" {
+					nullValueContacts = append(nullValueContacts, alphacontacts[pair.index])
+					list.Remove(alphacontacts[pair.index].NodeID)
+					list.MAdd(pair.res.Nodes)
+					// fmt.Println(pair.index, ": ", pair.res.Err.Msg)
+				} else {
+					// Found value
+					// fmt.Println(pair.index, ": ", pair.res.Value)
+					value = pair.res.Value
+					quit = true
+					found = true
+				}
+				count--
 			}
 		}
-		newdist := list.ClosetNode.Dist
-
-		if list.ActiveSize() >= k {
-			quit = true
-			continue
-		}
-
-		if newdist >= olddist {
-			quit = true
-			// TODO: Spec not clear
-			// Should we terminate here, or keep contact those node not contacted?
-			continue
+	}
+	// Store value to contacts don't have
+	if found {
+		for _, c := range nullValueContacts {
+			kadamlia.DoStore(&c, key, value)
 		}
 	}
-
-	return nil, &CommandFailed{"Not implemented"}
+	return value, nil
 }
 
 // For project 3!
