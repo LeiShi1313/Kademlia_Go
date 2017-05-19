@@ -49,6 +49,10 @@ func (l *ShortList) Init(Self *Kademlia, target ID) error {
 
 // Add : Not thread safe
 func (l *ShortList) Add(C Contact) error {
+	if C.NodeID.Equals(l.Parent.SelfContact.NodeID) {
+		return nil
+	}
+
 	_, ok := l.Entries[C.NodeID]
 	if ok {
 		return errors.New("Already in list")
@@ -184,7 +188,7 @@ func (l *ShortList) SetActive(id ID) error {
 		return errors.New("Not in list")
 	}
 	if l.ClosetActiveNode == nil || l.ClosetActiveNode.Dist > E.Dist {
-		l.ClosetNode = &E
+		l.ClosetActiveNode = &E
 	}
 	E.Active = true
 	l.Entries[id] = E

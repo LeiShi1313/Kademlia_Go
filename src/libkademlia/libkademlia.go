@@ -307,7 +307,7 @@ func (kad *Kademlia) DoIterativeFindNode(id ID) (C []Contact, e error) {
 			continue
 		}
 
-		if newdist >= olddist {
+		if newdist > olddist {
 			quit = true
 			// TODO: Spec not clear
 			// Should we terminate here, or keep contact those node not contacted?

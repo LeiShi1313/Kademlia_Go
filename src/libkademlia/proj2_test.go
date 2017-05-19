@@ -31,6 +31,40 @@ func TestNodeLeave(t *testing.T) {
 	}
 }
 
+func TestIterativeFindNode(t *testing.T) {
+	instance1 := NewKademlia("localhost:7101")
+	instance2 := NewKademlia("localhost:7102")
+	host2, port2, _ := StringToIpPort("localhost:7102")
+	_, err := instance1.DoPing(host2, port2)
+	if err != nil {
+		t.Error("Can't ping instance1")
+	}
+	if instance2Size, _ := instance2.GetRoutingTableInfo(); instance2Size != 1 {
+		t.Error("Kademlia.GetRoutingTableInfo return incorrect size")
+	}
+	tree_node := make([]*Kademlia, 40)
+	for i := 0; i < 40; i++ {
+		address := "localhost:" + strconv.Itoa(7103+i)
+		tree_node[i] = NewKademlia(address)
+		host_number, port_number, _ := StringToIpPort(address)
+		_, err = instance2.DoPing(host_number, port_number)
+		if err != nil {
+			t.Error("Can't ping instance" + strconv.Itoa(i+3))
+		}
+	}
+	if instance2Size, _ := instance2.GetRoutingTableInfo(); instance2Size < 30 {
+		t.Error("Kademlia.GetRoutingTableInfo return incorrect size")
+	}
+	id := NewRandomID()
+	contacts, err := instance2.DoIterativeFindNode(id)
+	if err != nil {
+		t.Error(fmt.Sprint(err))
+	}
+	if len(contacts) != 20 {
+		t.Error("Iterative store return insufficient number of contacts")
+	}
+}
+
 func TestIterativeStore(t *testing.T) {
 	instance1 := NewKademlia("localhost:30001")
 	instance2 := NewKademlia("localhost:30002")
