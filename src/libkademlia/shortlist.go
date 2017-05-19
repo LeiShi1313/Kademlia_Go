@@ -49,8 +49,10 @@ func (l *ShortList) Init(Self *Kademlia, target ID) error {
 
 // Add : Not thread safe
 func (l *ShortList) Add(C Contact) error {
-	if C.NodeID.Equals(l.Parent.SelfContact.NodeID) {
-		return nil
+	if l.Parent != nil {
+		if C.NodeID.Equals(l.Parent.SelfContact.NodeID) {
+			return nil
+		}
 	}
 
 	_, ok := l.Entries[C.NodeID]

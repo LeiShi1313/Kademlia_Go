@@ -351,7 +351,6 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 	quit := false
 	found := false
 	done := make(chan FindValueResultPair)
-	nullValueContacts := make([]Contact, 0)
 	for !quit {
 		alphacontacts := list.GetNearestN(alpha)
 		for i := 0; i < len(alphacontacts); i++ {
@@ -361,10 +360,12 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 		for count > 0 {
 			select {
 			case pair := <-done:
-				if pair.res.Err.Msg != "" {
-					nullValueContacts = append(nullValueContacts, alphacontacts[pair.index])
-					list.Remove(alphacontacts[pair.index].NodeID)
+				if pair.res.Err.Msg == "Key not found" {
+					list.SetActive(alphacontacts[pair.index].NodeID)
 					list.MAdd(pair.res.Nodes)
+				}
+				if pair.res.Err.Msg != "" {
+					list.Remove(alphacontacts[pair.index].NodeID)
 					// fmt.Println(pair.index, ": ", pair.res.Err.Msg)
 				} else {
 					// Found value
@@ -378,10 +379,8 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 		}
 	}
 	// Store value to contacts don't have
-	if found {
-		for _, c := range nullValueContacts {
-			kadamlia.DoStore(&c, key, value)
-		}
+	if found && list.ClosetActiveNode != nil {
+		kadamlia.DoStore(&list.ClosetActiveNode.Conn, key, value)
 	}
 	return value, nil
 }
