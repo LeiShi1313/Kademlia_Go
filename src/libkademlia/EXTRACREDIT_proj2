@@ -1,3 +1,8 @@
 TestShortlist
     This function tests the short list module
-    
+TestIterativeFindValue
+    This function tests the IterativeFindValue function
+TestIterativeStore
+    This function tests the IterativeStore function
+TestIterativeFindNode
+    This function tests the IterativeFindNode function

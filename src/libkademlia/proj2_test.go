@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
-	//"time"
 )
 
 func TestNodeLeave(t *testing.T) {
@@ -150,5 +149,48 @@ func TestIterativeFindValue(t *testing.T) {
 		t.Error("IterativeStore failed")
 		t.Error(fmt.Sprint("Except: ", val))
 		t.Error(fmt.Sprint("Got: ", result))
+	}
+}
+
+func TestShortlist(t *testing.T) {
+	var C [10]Contact
+	list := new(ShortList)
+	list.Init(nil, NewRandomID())
+	host, port, _ := StringToIpPort("localhost:10002")
+	for i := 0; i < 10; i++ {
+		C[i] = Contact{NewRandomID(), host, port}
+		list.Add(C[i])
+	}
+	CA := list.GetActiveContact()
+	CI := list.GetInactiveContact()
+	if len(CA) != 0 {
+		t.Error("Shouldn't have active contact at begining")
+	}
+	if len(CI) != 10 {
+		t.Error("All contact should be inactive")
+	}
+	for i := 0; i < 10; i++ {
+		list.SetActive(C[i].NodeID)
+		CA = list.GetActiveContact()
+		CI = list.GetInactiveContact()
+		if len(CA) != i+1 {
+			t.Error("Set active not working")
+		}
+		if len(CI) != 9-i {
+			t.Error("Set active not working")
+		}
+	}
+	for i := 0; i < 10; i++ {
+		c, _ := list.FindContact(C[i].NodeID)
+		if !c.NodeID.Equals(C[i].NodeID) {
+			t.Error("FindContact not working")
+		}
+	}
+	for i := 9; i > -1; i-- {
+		list.Remove(C[i].NodeID)
+		CA = list.GetActiveContact()
+		if len(CA) != i {
+			t.Error("Remove not working")
+		}
 	}
 }
