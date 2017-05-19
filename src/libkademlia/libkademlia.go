@@ -303,6 +303,21 @@ func (kad *Kademlia) DoIterativeFindNode(id ID) (C []Contact, e error) {
 		newdist := list.ClosetNode.Dist
 
 		if list.ActiveSize() >= k {
+			hwnds := make([]*rpc.Call, 0)
+			inactives := list.GetInactiveContact()
+			for i := 0; i < len(inactives); i++ {
+				hwnd, _ := kad.DoFindNodeAsync(&inactives[i], id)
+				hwnds = append(hwnds, hwnd)
+			}
+			for i := 0; i < len(inactives); i++ {
+				_, err := kad.DoFindNodeWait(rpchwnd[i])
+				if err != nil {
+					/* Not responding */
+					list.Remove(inactives[i].NodeID)
+				} else {
+					list.SetActive(inactives[i].NodeID)
+				}
+			}
 			quit = true
 			continue
 		}
