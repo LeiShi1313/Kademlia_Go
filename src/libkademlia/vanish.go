@@ -6,8 +6,8 @@ import (
 	"crypto/rand"
 	"io"
 	mathrand "math/rand"
+	"sss"
 	"time"
-	//"sss"
 )
 
 type VanashingDataObject struct {
@@ -72,11 +72,46 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 	return ciphertext
 }
 
-func (k *Kademlia) VanishData(data []byte, numberKeys byte,
-	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
-	return
+func (k *Kademlia) VanishData(data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (V VanashingDataObject) {
+	key := GenerateRandomCryptoKey()
+	V.Ciphertext = encrypt(key, data)
+	V.AccessKey = GenerateRandomAccessKey()
+	V.NumberKeys = numberKeys
+	V.Threshold = threshold
+	skey, err := sss.Split(numberKeys, threshold, key)
+	if err != nil {
+		V.NumberKeys = 0 // NumberKeys = 0 means error
+		return V
+	}
+	addrs := CalculateSharedKeyLocations(V.AccessKey, int64(numberKeys))
+	i := 0
+	for kid, kv := range skey {
+		packed := append([]byte{kid}, kv...)
+		_, err := k.DoIterativeStore(addrs[i], packed)
+		i++
+		if err != nil {
+			V.NumberKeys = 0 // NumberKeys = 0 means error
+			return V
+		}
+	}
+	return V
 }
 
 func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
-	return nil
+	keys := make(map[byte][]byte)
+	addrs := CalculateSharedKeyLocations(vdo.AccessKey, int64(vdo.NumberKeys))
+	for i := 0; i < len(addrs); i++ {
+		packed, err := k.DoIterativeFindValue(addrs[i])
+		if err != nil {
+			kid := packed[0]
+			kv := packed[1:]
+			keys[kid] = kv
+		}
+	}
+	if len(keys) < int(vdo.Threshold) {
+		return nil
+	}
+	key := sss.Combine(keys)
+	data = decrypt(key, vdo.Ciphertext)
+	return data
 }
