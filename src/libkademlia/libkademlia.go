@@ -27,6 +27,7 @@ type Kademlia struct {
 	SelfContact Contact
 	RT          RoutingTable
 	HT          HashTable
+	DT          DataTable
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
@@ -36,6 +37,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	k.RT.Init(k)
 	k.HT.Init(k)
+	k.DT.Init(k)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -401,11 +403,19 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 }
 
 // For project 3!
-func (k *Kademlia) Vanish(data []byte, numberKeys byte,
-	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
+func (k *Kademlia) Vanish(id ID, data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
+	// TODO: Support shreshould
+	vdo = k.VanishData(data, numberKeys, threshold, 0)
+	if vdo.NumberKeys > 0 {
+		k.DT.Add(id, vdo)
+	}
 	return
 }
 
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
+	V, err := k.DT.Find(searchKey)
+	if err == nil {
+		return k.UnvanishData(V)
+	}
 	return nil
 }
