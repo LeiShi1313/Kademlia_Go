@@ -147,9 +147,17 @@ type GetVDORequest struct {
 type GetVDOResult struct {
 	MsgID ID
 	VDO   VanashingDataObject
+	Err   RPCError
 }
 
 func (k *KademliaRPC) GetVDO(req GetVDORequest, res *GetVDOResult) error {
 	// TODO: Implement.
+	res.MsgID = CopyID(req.MsgID)
+	res.VDO, err := k.DT.Find(req.VdoID)
+	if err != nil {
+		res.Err = RPCError{err.Error()}
+	} else {
+		res.Err = RPCError{}
+	}
 	return nil
 }

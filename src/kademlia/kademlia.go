@@ -340,7 +340,49 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 		} else {
 			response = fmt.Sprintf("OK: Found value %s", value)
 		}
-
+	case toks[0] == "vanish":
+		if len(toks) < 5 || len(toks) > 5 {
+			response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold]"
+			return
+		}
+		key, err := kademlia.IDFromString(toks[1])
+		if err != nil {
+			response = "ERR: Provided an invalid VDO ID (" + toks[1] + ")"
+			return
+		}
+		numberKeys, err := strconv.ParseInt(toks[3], 10, 0)
+		if err != nil {
+			response = "ERR: Provided an invalid numberKeys (" + toks[3] + ")"
+			return
+		}
+		threshold, err := strconv.ParseInt(toks[4], 10, 0)
+		if err != nil {
+			response = "ERR: Provided an invalid threshold (" + toks[4] + ")"
+			return
+		}
+		// timeout, err := strconv.ParseInt(toks[5], 10, 0)
+		// if err != nil {
+		// 	response = "ERR: Provided an invalid timeout (" + toks[5] + ")"
+		// 	return
+		// }
+		vanishObject := k.Vanish(key, []byte(toks[2]), numberKeys, threshold, 0)
+	case toks[0] == "unvanish":
+		if len(toks) != 3 {
+			response = "usage: unvanish [Node ID] [VDO ID]"
+			return
+		}
+		key, err := kademlia.IDFromString(toks[1])
+		if err != nil {
+			response = "ERR: Provided an invalid Node ID (" + toks[1] + ")"
+			return
+		}
+		vdoID, err := kademlia.IDFromString(toks[2])
+		if err != nil {
+			response = "ERR: Provided an invalid VDO ID (" + toks[2] + ")"
+			return
+		}
+		data := k.unvanish(vdoID)
+		response = fmt.Sprint(data)
 	default:
 		response = "ERR: Unknown command"
 	}
