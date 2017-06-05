@@ -411,10 +411,19 @@ func (kadamlia *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error)
 func (k *Kademlia) Vanish(id ID, data []byte, numberKeys byte, threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	// TODO: Support shreshould
 	vdo = k.VanishData(data, numberKeys, threshold, 0)
-	if vdo.NumberKeys > 0 {
-		k.DT.Add(id, vdo)
+	if err := k.DoStoreVDO(id, vdo); err != nil {
+		fmt.Println("ERR: ", err)
 	}
 	return
+}
+
+func (k *Kademlia) DoStoreVDO(id ID, vdo VanashingDataObject) error {
+	if vdo.NumberKeys > 0 {
+		k.DT.Add(id, vdo)
+		return nil
+	} else {
+		return errors.New("too few numberKeys")
+	}
 }
 
 func (k *Kademlia) doFindVDOAsync(contact Contact, searchKey ID, done chan GetVDOResult) error {
@@ -422,8 +431,8 @@ func (k *Kademlia) doFindVDOAsync(contact Contact, searchKey ID, done chan GetVD
 	if err != nil {
 		return err
 	}
-	msdID := NewRandomID()
-	req := GetVDORequest{k.SelfContact, msdID, searchKey}
+	msgID := NewRandomID()
+	req := GetVDORequest{k.SelfContact, searchKey, msgID}
 	var reply GetVDOResult
 	if err := client.Call("KademliaRPC.GetVDO", req, &reply); err != nil {
 		return err
