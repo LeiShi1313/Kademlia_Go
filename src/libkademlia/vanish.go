@@ -102,7 +102,7 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	addrs := CalculateSharedKeyLocations(vdo.AccessKey, int64(vdo.NumberKeys))
 	for i := 0; i < len(addrs); i++ {
 		packed, err := k.DoIterativeFindValue(addrs[i])
-		if err != nil {
+		if err == nil {
 			kid := packed[0]
 			kv := packed[1:]
 			keys[kid] = kv
