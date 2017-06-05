@@ -324,6 +324,11 @@ func (kad *Kademlia) DoIterativeFindNode(id ID) (C []Contact, e error) {
 			continue
 		}
 
+		if len(list.GetInactiveContact()) == 0 {
+			quit = true
+			continue
+		}
+
 		if newdist > olddist {
 			quit = true
 			// TODO: Spec not clear
