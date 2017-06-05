@@ -417,10 +417,45 @@ func (k *Kademlia) Vanish(id ID, data []byte, numberKeys byte, threshold byte, t
 	return
 }
 
-func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
+func (k *Kademlia) doFindVDOAsync(contact Contact, searchKey ID, done chan GetVDOResult) error {
+	client, err := k.dial(contact.Host, contact.Port)
+	if err != nil {
+		return err
+	}
+	msdID := NewRandomID()
+	req := GetVDORequest{k.SelfContact, msdID, searchKey}
+	var reply GetVDOResult
+	if err := client.Call("KademliaRPC.GetVDO", req, &reply); err != nil {
+		return err
+	}
+	done <- reply
+	return nil
+}
+
+func (k *Kademlia) Unvanish(nodeID ID, searchKey ID) (data []byte) {
 	V, err := k.DT.Find(searchKey)
 	if err == nil {
 		return k.UnvanishData(V)
+	} else {
+		C, err := k.DoIterativeFindNode(nodeID)
+		if err != nil {
+			return nil
+		}
+		done := make(chan GetVDOResult)
+		for _, c := range C {
+			go k.doFindVDOAsync(c, searchKey, done)
+		}
+		count := len(C)
+		for count > 0 {
+			select {
+			case reply := <-done:
+				if reply.Err.Msg != "Key not found" {
+					V = reply.VDO
+					return k.UnvanishData(V)
+				}
+				count--
+			}
+		}
 	}
 	return nil
 }
